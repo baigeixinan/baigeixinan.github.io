@@ -292,7 +292,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-0.png"
+                     data-src="/image/image-0.png"
                       alt="img"
                 ></p>
 <p>或存在于文件上传功能点相应代码中存在路径：</p>
@@ -313,13 +313,13 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-1.png"
+                     data-src="/image/image-1.png"
                       alt="img"
                 ></p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-2.png"
+                     data-src="/image/image-2.png"
                       alt="img"
                 ></p>
 <h6 id="注：不可跨目录上传demo"><a href="#注：不可跨目录上传demo" class="headerlink" title="注：不可跨目录上传demo"></a>注：不可跨目录上传demo</h6><p>即对上传文件名进行处理，不可跨目录上传，demo如下：</p>
@@ -338,21 +338,21 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-3.png"
+                     data-src="/image/image-3.png"
                       alt="img"
                 ></p>
 <p>BOOT-INF为项目主要文件</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-4.png"
+                     data-src="/image/image-4.png"
                       alt="img"
                 ></p>
 <p>classes 文件夹为程序开发的代码，包括java文件编译后的class文件及模板文件（.html、.js、.css等前端文件）</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-5.png"
+                     data-src="/image/image-5.png"
                       alt="img"
                 ></p>
 <p>lib为依赖包</p>
@@ -360,7 +360,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-6.png"
+                     data-src="/image/image-6.png"
                       alt="img"
                 ></p>
 <p>此时项目为jar包运行，所以无法在其运行的时候往 classpath 中增加文件。</p>
@@ -384,7 +384,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-7.png"
+                     data-src="/image/image-7.png"
                       alt="img"
                 ></p>
 <p>当程序首次加载MyClass类时，静态代码块被执行并输出 “MyClass static block is initialized”。而在程序创建MyClass对象之前，静态代码块已经被执行并且静态变量已经被初始化了。接着，程序创建了一个MyClass对象并调用其构造函数。在这个过程中，程序执行了类的初始化，即为静态变量分配内存并进行初始化。</p>
@@ -395,7 +395,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-8.png"
+                     data-src="/image/image-8.png"
                       alt="img"
                 ></p>
 <p>类加载：classLoader.loadClass(className)</p>
@@ -405,7 +405,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-9.png"
+                     data-src="/image/image-9.png"
                       alt="img"
                 ></p>
 <p>类加载：Class.forName(className, false, classLoader)</p>
@@ -414,7 +414,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-10.png"
+                     data-src="/image/image-10.png"
                       alt="img"
                 ></p>
 <p>可以看到加载了JV为了避免一下加载太多暂时用不到或者以后都用不到的类，只加载了jre&#x2F;lib&#x2F;rt.jar中的很多类，并未加载&#x2F;jre&#x2F;lib中其他类，当需要使用某些类时才会进行加载，存在”懒加载”行为。相关 jar 文件的 Opened 操作没有在一开始就发生，而是调用到相关类时被触发。</p>
@@ -436,18 +436,18 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-11.png"
+                     data-src="/image/image-11.png"
                       alt="img"
                 ></p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-30.png"
+                     data-src="/image/image-30.png"
                       alt="img"
                 ><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-31.png"
+                     data-src="/image/image-31.png"
                       alt="img"
                 ></p>
 <p>org.springframework.http.MediaType#parseMediaType(@Nullable List<String> mediaTypes)</p>
@@ -456,7 +456,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-13.png"
+                     data-src="/image/image-13.png"
                       alt="img"
                 ></p>
 <p>org.springframework.http.MediaType#parseMediaType(@Nullable String mediaTypes)</p>
@@ -465,13 +465,13 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-14.png"
+                     data-src="/image/image-14.png"
                       alt="img"
                 ></p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-15.png"
+                     data-src="/image/image-15.png"
                       alt="img"
                 ></p>
 <p>注：org.springframework.util.MimeTypeUtils#tokenize()</p>
@@ -483,7 +483,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-16.png"
+                     data-src="/image/image-16.png"
                       alt="img"
                 ></p>
 <p>org.springframework.util.MimeTypeUtils#parseMimeType(mediaType)</p>
@@ -496,7 +496,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-17.png"
+                     data-src="/image/image-17.png"
                       alt="img"
                 ></p>
 <p>org.springframework.util.MimeType构造方法</p>
@@ -505,7 +505,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-18.png"
+                     data-src="/image/image-18.png"
                       alt="img"
                 ></p>
 <p>org.springframework.util.MimeType#checkParameters(parameter, value)</p>
@@ -514,7 +514,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-19.png"
+                     data-src="/image/image-19.png"
                       alt="img"
                 ></p>
 <p>java.nio.charset.Charset#forName(String charsetName)charsetName)跟进forName()方法,最后调用至Charset#lookup2()</p>
@@ -530,7 +530,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-20.png"
+                     data-src="/image/image-20.png"
                       alt="img"
                 ></p>
 <p>java.nio.charset.Charset#lookupExtendedCharset(charsetName)</p>
@@ -560,14 +560,14 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-21.png"
+                     data-src="/image/image-21.png"
                       alt="img"
                 ></p>
 <p>打包后用恶意charsets.jar覆盖jre中charsets.jar，构造请求：</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-22.png"
+                     data-src="/image/image-22.png"
                       alt="img"
                 ></p>
 <p>此为直接覆盖，接下来写个上传demo,实现任意文件上传(写入)Spring boot下的getshell</p>
@@ -579,34 +579,34 @@
 <p>抓包上传报错，无法覆盖文件<img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-23.png"
+                     data-src="/image/image-23.png"
                       alt="img"
                 ></p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-24.png"
+                     data-src="/image/image-24.png"
                       alt="img"
                 ></p>
 <p>linux下可成功上传</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-25.png"
+                     data-src="/image/image-25.png"
                       alt="img"
                 ></p>
 <p>发包</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-26.png"
+                     data-src="/image/image-26.png"
                       alt="img"
                 ></p>
 <p>执行恶意代码，因之前恶意代码为windows下执行，故此处报错。但恶意代码已经执行</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-27.png"
+                     data-src="/image/image-27.png"
                       alt="img"
                 ></p>
 <h4 id="总结："><a href="#总结：" class="headerlink" title="总结："></a>总结：</h4><p>1、可控制文件路径及文件名</p>
@@ -641,7 +641,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-28.png"
+                     data-src="/image/image-28.png"
                       alt="img"
                 ></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Exploit</span><br><span class="line">META-INF</span><br><span class="line">    └── services</span><br><span class="line">        └── java.nio.charset.spi.CharsetProvider</span><br></pre></td></tr></table></figure>
@@ -650,7 +650,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="/image%5Cimage-29.png"
+                     data-src="/image/image-29.png"
                       alt="img"
                 ></p>
 <h4 id="总结：-1"><a href="#总结：-1" class="headerlink" title="总结："></a>总结：</h4><p>1、可控制文件路径及文件名</p>
