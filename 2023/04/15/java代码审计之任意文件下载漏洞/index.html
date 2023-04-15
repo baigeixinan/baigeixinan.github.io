@@ -192,7 +192,7 @@
     
         <span class="article-update-date article-meta-item">
         <i class="fas fa-file-pen"></i>&nbsp;
-        <span class="pc">2023-04-15 15:48:46</span>
+        <span class="pc">2023-04-15 15:49:57</span>
     </span>
     
     
@@ -268,7 +268,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-0.png"
+                     data-src="/image/downimage-0.png"
                       alt="img"
                 ></p>
 <h6 id="getResouceAsStream"><a href="#getResouceAsStream" class="headerlink" title="getResouceAsStream()"></a>getResouceAsStream()</h6><p>getResouceAsStream()用于下载jar包内资源，demo如下：</p>
@@ -278,27 +278,27 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-1.png"
+                     data-src="/image/downimage-1.png"
                       alt="img"
                 ></p>
 <p>可下载jar包内文件，此处为target文件</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-2.png"
+                     data-src="/image/downimage-2.png"
                       alt="img"
                 ></p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-3.png"
+                     data-src="/image/downimage-3.png"
                       alt="img"
                 ></p>
 <p>无法跳出jar包下载文件，此处为target文件</p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-4.png"
+                     data-src="/image/downimage-4.png"
                       alt="img"
                 ></p>
 <h5 id="文件名不可控"><a href="#文件名不可控" class="headerlink" title="文件名不可控"></a>文件名不可控</h5><p>文件名不可控即前端传入参数不为文件名，可为id,获取id后从数据库根据id搜索文件保存地址，然后从下载文件</p>
@@ -309,13 +309,13 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-5.png"
+                     data-src="/image/downimage-5.png"
                       alt="img"
                 ></p>
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-6.png"
+                     data-src="/image/downimage-6.png"
                       alt="img"
                 ></p>
 <p>文件名不可控则不存在任意文件下载漏洞</p>
@@ -326,7 +326,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-7.png"
+                     data-src="/image/downimage-7.png"
                       alt="img"
                 ></p>
 <h4 id="从远程服务器下载"><a href="#从远程服务器下载" class="headerlink" title="从远程服务器下载"></a>从远程服务器下载</h4><p>远程服务器即从OSS下载文件，从下载方式可控制文件名，但下载范围为此存储筒(可能存在越权下载)。以下以MinIo为例</p>
@@ -340,7 +340,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-8.png"
+                     data-src="/image/downimage-8.png"
                       alt="img"
                 ></p>
 <h2 id="三、实现中遇到的任意文件下载tips"><a href="#三、实现中遇到的任意文件下载tips" class="headerlink" title="三、实现中遇到的任意文件下载tips"></a>三、实现中遇到的任意文件下载tips</h2><p>某次审计过程中碰到一个任意文件下载漏洞，文件下载处通过id传参从数据库查询文件地址后对文件进行下载，故文件名不可控，但存在一个文件上传接口及文件名修改接口，文件上传接口存在白名单，故不可上传任意后缀文件无法造成目录穿越从而任意文件下载；但文件名修改处controller接收参数为开发自定义的xxxFile类，此处可重置数据库中相应数据，可利用..&#x2F;造成任意文件下载。</p>
@@ -364,7 +364,7 @@
 <p><img  
                      lazyload
                      alt="image"
-                     data-src="E:/ExportMD-rectify-pics/image/downimage-9.png"
+                     data-src="/image/downimage-9.png"
                       alt="img"
                 ></p>
 
